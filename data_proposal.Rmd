@@ -37,7 +37,7 @@ The source isn't clear on how they gathered their weather data, only referencing
 Their reference link to the Holiday Schedule data is broken, but we assume they meant to link (https://dchr.dc.gov/page/holiday-schedules). The site has since updated to show the 2023 holiday schedule, but looking back on the [WayBack Machine](http://web.archive.org/web/20140815000000*/http://dchr.dc.gov/page/holiday-schedule) with the original link we see what the page looked like in 2013, when the data was donated. We presume again that the data was either webscraped or entered manually.
 
 
-### statistical description
+## statistical description
 
 ```{r}
 library(tidyverse)
@@ -45,6 +45,58 @@ df <- read_csv("Bike-Sharing-Dataset/hour.csv")
 
 head(df)
 ```
+```{r}
+str(df)
+```
+#### data types , structure
+
+The data consists of an aggregated count of 'rides' by hour for the years 2011 and 2012. Weather data has been added for each 'observation'. The weather data was presumably separated by the hour from the original source, and so is presumably an hourly average. 
+
+Most of the data is numerical in nature, apart from the 'dteday' column, which records the date in a date format. This date is separated further in year, month, and hour columns, which are factored into discrete numeric variables, similarly to the 'weekday' variable. The 'year', 'holiday', and 'workinday' variables are boolean variables. For the 'year', a '0' represents 2011, and a '1' 2012. 
+
+The 'weathersit' variable is categorical, where the conditions were classified into four. The data can be taken as ordinal, with '1' being the most 'pleasant' weather, and 4 the least. From the original data source description:
+- 1: Clear, Few clouds, Partly cloudy, Partly cloudy
+- 2: Mist + Cloudy, Mist + Broken clouds, Mist + Few clouds, Mist
+- 3: Light Snow, Light Rain + Thunderstorm + Scattered clouds, Light Rain + Scattered clouds
+- 4: Heavy Rain + Ice Pallets + Thunderstorm + Mist, Snow + Fog 
+
+The rest of the weather related variables, 'temp', 'atemp', 'hum' and 'windspeed' have been normalized. From the original data source description:
+- temp : Normalized temperature in Celsius. The values are derived via (t-t_min)/(t_max-t_min), t_min=-8, t_max=+39 (only in hourly scale)
+- atemp: Normalized feeling temperature in Celsius. The values are derived via (t-t_min)/(t_max-t_min), t_min=-16, t_max=+50 (only in hourly scale)
+- hum: Normalized humidity. The values are divided to 100 (max)
+- windspeed: Normalized wind speed. The values are divided to 67 (max) 
+
+Finally, 'casual', 'registered', and 'cnt' are counts of bikes rented during each 'hour', corresponding to the count of casual users, registered users, and the sum of both. 
+
+#### distribution
+```{r}
+library(ggplot2)
+
+plotlist = list()
+for (i in colnames(df)[-c(1,2)]){
+  plotlist[[i]] <- ggplot(df, aes_string(x=i))+geom_bar()
+}
+
+for (i in plotlist){
+  print(i)
+}
+
+```
+These plots are essentially histograms and can be taken as a proxy to a probability density function for continuous variables. 
+We are expecting that the counts of observations for each year, weekday and hour are equal across categories: each year should have the same number of hours, same as weekday and hour. We suppose that there are less 'observations' for the hours of 2,3,4,5 due to some days containing no rides during that hour. Otherwise, every other hour in the two year period contains at least one ride.
+
+The season, month, holiday, and workingday 'counts' are not interesting on their own: they are constant values for a given period of time. 
+
+In the 'weathersit' plot, we see that a majority of cases are classified as '1', and decreasing counts as the weather gets less pleasant. This tells us that the weather is pleasant most of the time in DC. 
+
+The other weather variables are normalized. Maybe we can reverse engineer the 'averages', given the normalization formula. In the 'temp' plot, we see what looks like a symmetric bimodal distribution. We know that the minimum is -8, and the maximum is +39 Celsius. 'atemp', which is the feeling temperature, shows more of a flattened peak, although there is one value that is recorded about doubly more often than any other. Similarly there's a few troughs. Generally it seems symmetric.  I would have expected a more continuous distribution, so there might be something going on in regards to rounding or collection of data. Similarly, I would have expected more continuous data for the humidity records, as well as the windspeed. 
+
+For the count of casual users during a given hour, we see what looks like a steep exponential decline. Intuitively, less users during a given hour happen a lot more often then a lot of users. The distribution of registered users sees less of an extreme drop, with a less steep decline from 50 counts on of individual hours observing a minimum of about 75 rides on. We see that there is a lot more counts of casual users however (peaking >1500 vs >300), so on the same y-scale the distributions might look more similar. More investigation needed in that regard. 
 
 
+## Scientific questions
+- what affects the number of bike rides the most? 
+- can we predict the number of rides given certain conditions (maybe to know when the best time would be to set up a refreshements stand on a popular route or something idk)
+- would be cool to see the location of popularity, but that is not possible with this dataset. A different project could investigate into it, given the original data contains information about the start and end stations.
+-etc etc
 
