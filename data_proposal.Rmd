@@ -1,0 +1,50 @@
+---
+title: "data_proposal"
+author: "Ricky & Vimal"
+date: "2023-02-22"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The purpose of the proposal is to find a dataset to analyze and summarize the data, identifying any challenges that may exist within that dataset.
+
+- statistical description of the dataset 
+  - data types 
+  - structures 
+  - distribution
+  - etc
+
+- about data collection
+  - who 
+  - what 
+  - when 
+  - where 
+  - how
+  - underlying scientific processes that may affect the data
+
+- what scientific questions about the data you will try to answer
+
+## About Data Collection
+The dataset we have chosen to analyze is Hadi Fanaee-T's [dataset](https://archive.ics.uci.edu/ml/datasets/Bike+Sharing+Dataset), from the Laboratory of Artificial Intelligence and Decision Support (LIAAD), University of Porto, accessed in the UCI Machine Learning Repository. This dataset combines the Trip History Data for the years of 2011 and 2012 of 'Capital Bikeshare', which is metro Washington DC's bikeshare service, with weather data and the holiday schedule. We considered building an updated version, but found it would take too much data wrangling work and data sourcing, and decided to focus on finding models and performance indices. 
+
+Capital Bikeshare's data comes from their electronic systems. An 'observation' is collected for every 'trip' a bike takes. It has been processed to include only 'valid' trips from the user base, removing service trips and short trips (less than 1 minute), attribute to potential false starts. 
+
+The source isn't clear on how they gathered their weather data, only referencing the site https://ca.freemeteo.com/. We presume they scraped or used an API to access historical weather data for the DC region at https://ca.freemeteo.com/
+
+Their reference link to the Holiday Schedule data is broken, but we assume they meant to link (https://dchr.dc.gov/page/holiday-schedules). The site has since updated to show the 2023 holiday schedule, but looking back on the [WayBack Machine](http://web.archive.org/web/20140815000000*/http://dchr.dc.gov/page/holiday-schedule) with the original link we see what the page looked like in 2013, when the data was donated. We presume again that the data was either webscraped or entered manually.
+
+
+### statistical description
+
+```{r}
+library(tidyverse)
+df <- read_csv("Bike-Sharing-Dataset/hour.csv")
+
+head(df)
+```
+
+
+
