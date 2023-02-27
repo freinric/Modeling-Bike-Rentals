@@ -1,3 +1,4 @@
 .gitignore
 .RData
 .Rhistory
+.gitignore.txt
