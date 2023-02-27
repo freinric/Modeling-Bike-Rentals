@@ -1,0 +1,43 @@
+---
+title: "Data 583: Project Proposal"
+author: "Ricky Heinrich & Vimaljeet Singh"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+The data set is taken from UCI machine learning repository and related to the two-year historical log corresponding to years 2011 and 2012 from Capital Bikeshare system, Washington D.C., USA which is publicly available at http://capitalbikeshare.com/system-data. The data was aggregated on two hourly and daily basis. Then the corresponding weather and seasonal information was added on to this data. Weather information are extracted from http://www.freemeteo.com. 
+
+```{r}
+day = read.csv("day.csv", header = TRUE)
+str(day)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+df <- data.frame(
+  Name = c("John", "Jane", "Bob"),
+  Age = c(30, 25, 40),
+  Gender = c("Male", "Female", "Male")
+)
+
+# Create table
+knitr::kable(df)
+```
+
