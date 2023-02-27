@@ -12,7 +12,7 @@ day = read.csv("day.csv", header = TRUE)
 str(day)
 ```
 
-
+Underlying scientific processes that affected the data would be the occurrence of natural events like Hurricane Sandy on Oct 30, 2012. Other factors that might affect the numbers would be hourly or daily environmental and seasonal settings.
 
 
 
