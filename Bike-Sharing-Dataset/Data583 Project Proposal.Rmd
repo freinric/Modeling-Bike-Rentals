@@ -22,6 +22,8 @@ output:
 
 ![](Description_of_variables.png)
 
+The variables 'temp', 'hum', 'windspeed' are not normally distributed as will be shown in EDA.
+
 
 ## Underlying scientific processes that may affect the data
 
