@@ -1,0 +1,384 @@
+---
+title: "Data583 EDA"
+author: "Vimaljeet Singh"
+date: '`r Sys.Date()`'
+output:
+  html_document: default
+  pdf_document: default
+---
+
+# EDA
+
+### Workflow for current and next step in the project
+
+To determine which model would fit this data, we need to consider several factors such as the nature of the problem, the available data, and the type of output that we are trying to predict.
+
+First, we need to define the problem and the goal of the model. In this case, we are trying to **predict the number of bikes rented per hour (cnt)**, given the various features such as weather, time of day, and other factors. This is a regression problem, as we are trying to predict a discrete variable.
+
+Second, we need to examine the available data and determine if there are any missing values, outliers, or other anomalies. If the data is incomplete, we may need to consider techniques such as imputation or data cleaning to address these issues.
+
+Third, we need to select appropriate features for the model. Some features, such as season or weather, may have a strong correlation with the number of bikes rented, while others may not be as important. Feature selection can be done using techniques such as correlation analysis or principal component analysis.
+
+Finally, we can select a model that is appropriate for the problem at hand. Some popular models for regression problems include linear regression, decision trees, random forests, and neural networks. We can use techniques such as cross-validation to evaluate different models and select the one that performs best on the data.
+
+
+```{r}
+myday = read.csv("day.csv", header = TRUE)
+myday$dteday = as.Date(myday$dteday, format = "%Y-%m-%d") # converting 'dteday' column to date
+```
+
+The dteday column has been explicitly converted to date format, it was 'char' by default.
+
+```{r}
+head(myday, 5)
+```
+
+```{r}
+min(myday$dteday)
+max(myday$dteday)
+```
+
+This is the date range for the data set as seen above is from January 1, 2011 to December 31, 2012.
+
+```{r}
+colSums(is.na(myday))
+```
+
+
+As shown in project proposal, the following varaibles were divided by the maximum value in the column, so we will get back original values and save it into new columns to help make charts and understand and visualize data better.
+- temp : Normalized temperature in Celsius. The values are divided to 41 (max)
+- atemp: Normalized feeling temperature in Celsius. The values are divided to 50 (max)
+- hum: Normalized humidity. The values are divided to 100 (max)
+- windspeed: Normalized wind speed. The values are divided to 67 (max)
+
+
+```{r echo=FALSE}
+myday$rawtemp = myday$temp*41 # converting temp to raw form
+myday$rawatemp = myday$atemp*50 # converting atemp to raw
+myday$rawhum = myday$hum*100 # converting hum to raw form
+myday$rawwindspeed = myday$windspeed*67 # converting windspeed to raw form 
+```
+
+
+## To see if Bike Rental Count is different for both years
+
+```{r echo=FALSE, fig.width=8, fig.height=3}
+library(tidyverse)
+
+# Filter the dataset by year and store cnt in a new dataframe
+yearly_count <- 
+    myday %>%
+    select(yr, cnt) %>%
+    group_by(yr) %>%
+    summarize(cnt = list(cnt)) %>%
+    unnest(cnt)
+
+ggplot(yearly_count, aes(x = factor(yr), y = cnt)) +
+  geom_boxplot(fill = "red") +
+  labs(title = "Bike Rental Count by Year", x = "", y = "Bike Rentals") +
+  theme(axis.title.x = element_text(size = 11), 
+        axis.title.y = element_text(size = 11), 
+        plot.title = element_text(size = 15, hjust = 0.5),
+        legend.position = "top", legend.justification = "right",
+        legend.text = element_text(size = 9),
+        axis.text.x = element_text(size = 7),
+        axis.text.y = element_text(size = 7)) +
+  scale_x_discrete(labels = c("2011", "2012"), name = "Years", 
+                   breaks = c(0, 1))
+```
+
+
+* The number of bikes rented out has increased from 2011 in 2012.
+* Also, we notice the outlier in 2012 which can be seen as a dot towards the bottom of the plot, lets explore that. 
+* The following chart marks it in red so that it is easy to see.
+
+
+
+```{r echo=FALSE, fig.width=8, fig.height=4.5}
+# Filter data for 2012
+myday_2012 <- subset(myday, yr == 1)
+
+# Find the smallest value of cnt for 2012
+min_cnt <- min(myday_2012$cnt)
+
+# Create a new column indicating the smallest value
+myday_2012$min_cnt <- ifelse(myday_2012$cnt == min_cnt, "Smallest Value", "Other Values")
+
+# Plot cnt per day for the year 2012
+ggplot(myday_2012, aes(x = dteday, y = cnt, color = min_cnt)) +
+geom_point(size = 2.5) +
+labs(title = "Bike Rental Counts per Day - 2012",
+   x = "",
+   y = "Rental Count") +
+theme(axis.title.x = element_text(size = 15), 
+    axis.title.y = element_text(size = 11), 
+    plot.title = element_text(size = 15, hjust = 0.5),
+    legend.position = "top", legend.justification = "right",
+    legend.text = element_text(size = 14),
+    axis.text.x = element_text(size = 7),
+    axis.text.y = element_text(size = 7)) +
+scale_color_manual(values = c("black", "red"), guide = "none")
+```
+
+Let us explore this further:
+
+```{r}
+myday_2012 <- subset(myday, yr == 1)
+mydata = myday_2012[myday_2012$cnt == min(myday_2012$cnt), c("cnt","dteday")]
+cbind(yearly_mean = mean(myday_2012$cnt), mydata)
+```
+
+We see that the number of bikes rented out on October 29, 2012 was underwhelmingly lower than the yearly average for 2012 making it an outlier. We investigated further to see why that is and found the following:
+
+![](1.png)
+
+It was because of this natural calamity that the number of bike rental counts was super low. We have also successfully used this data set to find a natural calamity. 
+
+
+
+## See if variables are normally distributed
+
+```{r echo=FALSE}
+par(mfrow=c(2,2))
+
+qqnorm(myday$temp)
+qqline(myday$temp, col = "red", lwd = 3)
+
+qqnorm(myday$hum)
+qqline(myday$hum, col = "red", lwd = 2)
+
+qqnorm(myday$windspeed, cex = 1.5)
+qqline(myday$windspeed, col = "red", lwd = 2)
+
+qqnorm(myday$cnt, cex = 1.5)
+qqline(myday$cnt, col = "red", lwd = 2)
+```
+
+We see that the variables, temp (top-left), humidity (top-right), windspeed (bottom-left) and cnt (bottom-right) are not normally distributed. Let us confirm the normality of the cnt variable using histograms and a test. 
+
+
+
+## Plotting histogram to see distribution of count variable for both years
+
+```{r echo=FALSE, fig.width=8, fig.height=3}
+ggplot(myday, aes(x = cnt, fill = factor(yr))) + 
+geom_histogram(binwidth = 100, color = "black", alpha = 0.8) +
+labs(title = "Total Rental Bikes by Year", 
+   x = "Count of Rental Bikes", 
+   y = "Frequency") +
+scale_fill_discrete(name = "Year", labels = c("2011", "2012")) +
+scale_color_manual(values = c('#3493bf', '#c74448')) +
+theme(axis.title.x = element_text(size = 11), 
+axis.title.y = element_text(size = 11), 
+plot.title = element_text(size = 15, hjust = 0.5),
+axis.text.y = element_text(size = 7),
+axis.text.x = element_text(size = 7)) 
+```
+
+The graph shows us that the cnt variable is not normally distributed. A Shapiro test should corroborate this.
+
+
+ 
+## Shapiro Wilk test for 'cnt'
+
+```{r}
+shapiro.test(myday$cnt)
+```
+
+As the pvalue is really low ($\alpha$ = 0.05), we do not have enough evidence for the null hypothesis and we conclude that cnt data is not normally distributed.
+
+
+ 
+## Scatter plot of reponse variable with 'hum', 'windspeed' and 'temp'
+
+```{r}
+pairs(myday[, c("cnt", "hum", "windspeed", "temp")])
+```
+
+
+
+## Correlations
+
+```{r}
+cor.hum <- cor.test(x = myday$cnt, y = myday$hum)
+cor.temp <- cor.test(x = myday$cnt, y = myday$temp)
+cor.ws <- cor.test(x = myday$cnt, y = myday$windspeed)
+cbind(corr_hum=cor.hum[4], corr_temp=cor.temp[4], corr_ws=cor.ws[4])
+```
+
+* Correlation of cnt with humidity -0.1006586
+* Correlation of cnt with temp 0.627494
+* Correlation of cnt with windspeed -0.234545
+
+The only somewhat correlation that cnt shows with is temp, it seems to have almost no correlation with humidity and windspeed. Find the chart below that shows correlation between raw temperatures and type of users. 
+
+
+
+## Check if 'weathersit' and 'holiday' variables are important using ANOVA
+
+```{r}
+lm <- lm(cnt ~ weathersit + holiday, data = myday)
+anova (lm)
+```
+
+F values greater than 1, and pvalues less than 0.05 show that both these variables are significant in predicting count of bike rentals.
+
+```{r echo=FALSE}
+plot(x = 1, y = 1, xlab = "Raw Temperature (Celsius)", ylab = "Bike Rentals", type = "n", 
+     main = "Correlation between Raw Temperature and Type of Users", xlim = c(0, 40), ylim = c(0, 7500))
+points(myday$rawtemp, myday$casual, pch = 11, col = "#0096FF", cex = 1.5)
+points(myday$rawtemp, myday$registered, pch = 11, col = "#EE4B2B", cex = 1.5)
+legend("topright",legend = c("Casual", "Registered"), col = c("#0096FF","#EE4B2B"), pch = c(11, 11), bg = "grey")
+abline(lm(myday$registered ~ myday$rawtemp), lty = 1, col = "#0096FF", lwd = 2)
+abline(lm(myday$casual ~ myday$rawtemp), lty = 1, col = "#EE4B2B", lwd = 2)
+abline(lm(myday$registered ~ myday$rawtemp), lty = 1, col = "#0096FF", lwd = 2)
+registered <- paste("cor = ", round(cor(myday$registered, myday$rawtemp), 2), sep = "")
+casual <- paste("cor = ", round(cor(myday$casual, myday$rawtemp), 2), sep = "")
+legend("left",legend = c(registered, casual) , col = c('#EE4B2B', '#0096FF'),pch = c(11, 11), bg = "grey")
+```
+
+Not much correlation can be seen as was also seen with the 'temp' variable too.
+
+
+
+# Some exploratory charts
+
+
+
+```{r echo=FALSE, fig.width=8, fig.height=3}
+# aggregating data by month & year
+df <- myday %>% 
+    mutate(month_year = format(dteday, "%Y-%m")) %>% 
+    select(month_year, rawtemp)
+
+# calculate average temperature by month and year
+df_avg <- df %>% 
+  group_by(month_year) %>% 
+  summarise(avg_temp = mean(rawtemp))
+
+# draw the plot with reduced x-axis ticks
+ggplot(df_avg, aes(x = month_year, y = avg_temp)) + 
+  geom_point(size = 2, color = "red") +
+  labs(x = "", y = "Average Temperature (Celsius)") +
+  ggtitle("Average Temperature for each month in 2011 & 2012") +
+  theme(axis.title.x = element_text(size = 11), 
+        axis.title.y = element_text(size = 11), 
+        plot.title = element_text(size = 15, hjust = 0.5),
+        axis.text.y = element_text(size = 7)) +
+  scale_x_discrete(breaks = df_avg$month_year[seq(1, nrow(df_avg), by = 2)], 
+                   labels = df_avg$month_year[seq(1, nrow(df_avg), by = 2)])
+```
+
+
+```{r echo=FALSE, fig.width=8, fig.height=4.5}
+# creating monthly averages for the year 2011
+year_2011 <- subset(myday, yr == 0)
+avg_counts_2011 <- aggregate(cnt ~ mnth, data = year_2011, FUN = mean)
+avg_counts_2011$yr = 2011
+avg_counts_2011$yr = factor(avg_counts_2011$yr)
+
+# creating monthly averages for the year 2012
+year_2012 <- subset(myday, yr == 1)
+avg_counts_2012 <- aggregate(cnt ~ mnth, data = year_2012, FUN = mean)
+avg_counts_2012$yr = 2012
+avg_counts_2012$yr = factor(avg_counts_2012$yr)
+
+# combining monthly averages for both the months
+myavg = rbind(avg_counts_2011, avg_counts_2012)
+
+ggplot(myavg, aes(x = mnth, y = cnt, color = yr)) +
+  geom_point(size= 5) +
+  geom_line() +
+  labs(title = "Average Bike Rental Counts per month",
+       x = "Month",
+       y = "Average Rental Count",
+       color = "Year") +
+  theme(axis.title.x = element_text(size = 11), 
+        axis.title.y = element_text(size = 11), 
+        plot.title = element_text(size = 15, hjust = 0.5),
+        legend.position = "top", legend.justification = "right",
+        legend.text = element_text(size = 7),
+        axis.text.x = element_text(size = 7),
+        axis.text.y = element_text(size = 7)) +
+  scale_x_continuous(breaks = seq(1, 12, by = 1), 
+                     labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) + 
+  scale_y_continuous(limits = c(0, 8000), breaks = seq(0, 8000, 2000))
+
+```
+
+
+We note that the bike rentals went were higher in the year 2012 as compared to 2011, did temperature have a role to play in this? We can make a similar plot for average raw temperatures to see if the temperatures varied in these two years causing an increase in the bike rental count.
+
+```{r echo=FALSE, fig.width=8, fig.height=4.5}
+# creating monthly averages for the year 2011
+temp_2011 <- subset(myday, yr == 0)
+avg_temp_2011 <- aggregate(rawtemp ~ mnth, data = temp_2011, FUN = mean)
+avg_temp_2011$yr = 2011
+avg_temp_2011$yr = factor(avg_temp_2011$yr)
+
+# creating monthly averages for the year 2012
+temp_2012 <- subset(myday, yr == 1)
+avg_temp_2012 <- aggregate(rawtemp ~ mnth, data = temp_2012, FUN = mean)
+avg_temp_2012$yr = 2012
+avg_temp_2012$yr = factor(avg_temp_2012$yr)
+
+# combining monthly averages for both the months
+myavg_temp = rbind(avg_temp_2011, avg_temp_2012)
+
+ggplot(myavg_temp, aes(x = mnth, y = rawtemp, color = yr)) +
+  geom_point(size= 5) +
+  geom_line() +
+  labs(title = "Average Raw Temperature per Month",
+       x = "",
+       y = "Average Raw Temperature (°C)",
+       color = "Year") +
+  theme(axis.title.x = element_text(size = 11), 
+        axis.title.y = element_text(size = 11), 
+        plot.title = element_text(size = 15, hjust = 0.5),
+        legend.position = "top", legend.justification = "right",
+        legend.text = element_text(size = 7),
+        axis.text.x = element_text(size = 7),
+        axis.text.y = element_text(size = 7)) +
+  scale_x_continuous(breaks = seq(1, 12, by = 1), 
+                     labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) + 
+  scale_y_continuous(limits = c(0, 40), breaks = seq(0, 40, 5))
+
+```
+
+
+
+```{r echo=FALSE, fig.width=8, fig.height=4.5}
+ggplot(myday, aes(x = rawtemp, y = cnt, color = registered)) +
+geom_point(size= 2) +
+labs(title = c("Bike Rental Counts vs Temperature (Registered Users)"),
+    x = "Temperature (in C)",
+    y = "Rental Count",
+    color = "Registered") +
+geom_smooth(method='lm', color="red") +
+theme(axis.title.x = element_text(size = 11), 
+    axis.title.y = element_text(size = 11), 
+    plot.title = element_text(size = 15, hjust = 0.5),
+    legend.position = "top", legend.justification = "right",
+    legend.text = element_text(size = 7),
+    axis.text.x = element_text(size = 7),
+    axis.text.y = element_text(size = 7)) +
+scale_x_continuous(limits = c(0, 40), breaks = seq(1, 38, by=3 )) +
+scale_y_continuous(limits = c(0, 9000), breaks = seq(0, 9000, 1000))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
