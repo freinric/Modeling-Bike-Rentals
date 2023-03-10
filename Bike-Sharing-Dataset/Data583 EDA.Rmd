@@ -3,8 +3,8 @@ title: "Data583 EDA"
 author: "Vimaljeet Singh"
 date: '`r Sys.Date()`'
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 # EDA
@@ -352,6 +352,38 @@ scale_x_continuous(limits = c(0, 40), breaks = seq(1, 38, by=3 )) +
 scale_y_continuous(limits = c(0, 9000), breaks = seq(0, 9000, 1000))
 ```
 
+```{r}
+library(ggplot2)
+library(cowplot)
+
+# Define a function for creating scatterplots
+create_scatterplot <- function(data, x_var, y_var, y_lab) {
+  ggplot(data, aes(x = !!sym(x_var), y = !!sym(y_var))) + 
+    geom_point(alpha = 0.7) + 
+    geom_smooth(method = "lm", se = FALSE) + 
+    labs(title = paste("Total Rental Bikes vs", y_lab),
+         x = "Total Rental Bikes", y = y_lab) +
+    theme(axis.title.x = element_text(size = 11), 
+          axis.title.y = element_text(size = 11), 
+          plot.title = element_text(size = 12, hjust = 0.5),
+          legend.position = "top", legend.justification = "right",
+          legend.text = element_text(size = 7),
+          axis.text.x = element_text(size = 7),
+          axis.text.y = element_text(size = 7))
+}
+
+# Use the function to create scatterplots for the three variables
+p1 <- create_scatterplot(myday, "cnt", "hum", "Humidity")
+p2 <- create_scatterplot(myday, "cnt", "temp", "Temperature (C)")
+p3 <- create_scatterplot(myday, "cnt", "windspeed", "Windspeed")
+
+# Arrange the plots in a single row with custom widths
+plot_row <- plot_grid(p1, p2, p3, ncol = 3, widths = c(1.5, 1.5, 2))
+
+# Display the plots
+plot_row
+
+```
 
 
 
