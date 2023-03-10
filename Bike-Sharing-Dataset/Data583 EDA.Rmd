@@ -387,14 +387,14 @@ plot_row
 
 ```{r}
 library(randomForest)
-rf_model <- randomForest(cnt ~ . -instant, data = myday, ntree = 500, importance=TRUE)
+rf_model <- randomForest(cnt ~ . - instant - registered - casual - rawtemp - rawhum - rawwindspeed, 
+                         data = myday, ntree = 500, importance=TRUE)
 print(rf_model)
 varImpPlot(rf_model)
 ```
 
-* From the summary of the model fit, we can see that the entire data explains 98.5% of the variation on the response. This can be one model that can be used to fit the data.
+* From the summary of the model fit, we can see that the entire data explains 88.77% of the variation on the response. This can be one model that can be used to fit the data.
 * The variables are ranked in descending order of importance, with the most important variable at the top of the plot.
-* The importance of a variable is measured by its mean decrease in impurity (usually measured by Gini index) across all trees in the random forest model. The higher the decrease in impurity, the more important the variable is in making accurate predictions. 'registered', 'casual', 'dteday' seem to be very important variables.
 
 
 
