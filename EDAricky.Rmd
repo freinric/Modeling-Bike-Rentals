@@ -1,5 +1,5 @@
 ---
-title: "EDA"
+title: "Bike Sharing EDA"
 author: "Ricky Heinrich & Vimaljeet Singh"
 date: "2023-03-10"
 output: pdf_document
@@ -9,7 +9,7 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Workflow for current and next step in the project
+## Workflow for Current and Next Step in the Project
 
 To determine which model would fit this data, we need to consider several factors such as the nature of the problem, the available data, and the type of output that we are trying to predict.
 
@@ -37,7 +37,7 @@ for (i in colnames(df)[-c(1,2)]){
 }
 ```
 
-### Date related variables
+### Date Related Variables
 
 The dataset contains 17 variables, where the first column is an index.
 Most of the data is numerical in nature, apart from the *dteday* column, which records the date in a date format. This date is separated further in year, month, and hour columns, which are factored into discrete numeric variables, similarly to the *weekday* variable, where Sunday is 0. The *year*, *holiday*, and *workinday* variables are boolean variables. For the *year*, a '0' represents 2011, and a '1' 2012. 
@@ -54,7 +54,7 @@ The distributions of counts for season, month, holiday, and workingday are not i
 cowplot::plot_grid(plotlist = plotlist[c(1,3,5,7)], ncol = 2)
 ```
 
-### Weather related variables
+### Weather Related Variables
 
 The *weathersit* variable is categorical, where the conditions were classified into four. The data can be taken as ordinal, with '1' being the most 'pleasant' weather, and 4 the least. From the original data source description: 
 
@@ -86,7 +86,7 @@ Data summaries:
 summary(df[18:21])
 ```
 
-### Response data
+### Response Data
 
 Finally, *casual*, *registered*, and *cnt* are counts of bikes rented during each 'hour', corresponding to the count of casual users, registered users, and the sum of both. For the count of casual users during a given hour, we see in figure 5 what looks like a steep exponential decline. Intuitively, less users during a given hour happen a lot more often then a lot of users. The distribution of registered users sees less of an extreme drop, with a less steep decline from 50 counts on of individual hours observing a minimum of about 75 rides on. 
 
@@ -103,7 +103,7 @@ summary(df[15:17])
 ```
 
 
-## Correlation among variables
+## Correlation Among Variables
 
 Figure 6 plots a correlation matrix, where we've removed predictors where the factor assigned to it is arbitrary, like *season* and *month*. Variables positively correlated with the total count of bikes rented in an hour are the year, hour of the day, and temperature both measured and felt. Humidity and *weathersit* are both negatively correlated. Variables with near zero correlation are *windspeed*, *holiday*, and *workingday*. It is interesting to see that *workingday* is weakly positively correlated with the count of registered user rentals, whereas more strongly negatively correlated with that of casual users. It is the only variable where the trends are not in the same direction between the two types of users.
 ```{r, echo=FALSE, include=FALSE}
@@ -192,7 +192,7 @@ cbind(yearly_mean = mean(myday_2012$cnt), mydata)
 
 We see that the number of bikes rented out on October 29, 2012 was underwhelmingly lower than the yearly average for 2012 making it an outlier. We investigated further to see why that is and found that that is the day Hurricane Sandy landed on the east coast.
 
-### Bike Rental Counts per Month
+### Bike Rental Count per Month
 
 Figure 8 plots the count of bikes used for every month, split by year. Interestingly, 2011 sees a flat peak in June and a gradual decline into the winter months. The next year has a big jump from February to March, then climbs gradually to peak in September before seeing a steeper decline into the winter months.
 
@@ -218,7 +218,7 @@ ggplot(df, aes(x = mnth, y = cnt, color = factor(yr))) +
 ```
 
 
-### Bike Rental Counts per Hour
+### Bike Rental Count per Hour
 
 Next, in figure 9, we can see that both years follow a similar trend in average rental count per hour of day. There is a similar low number of bikes rented out in the hours of 2,3,4 and 5 in both years. The change is greatest in the daytime hours: 7am to 9pm. In an seasons, we observe peaks at 8am and 5pm, suggesting that people use the rental system as transportation to work. 
 
@@ -242,7 +242,7 @@ ggplot(df, aes(x = hr, y = cnt, color = factor(yr))) +
        scale_color_hue(labels = c("2011", "2012"))
 ```
 
-### Bike Rental Counts per Weekday
+### Bike Rental Count per Weekday
 In figure 10, we interestingly don't observe a drop of rides during the weekends in every season. The trends are not similar for neither both years nor all seasons.
 
 ```{r, echo=FALSE, fig.width=7, fig.height=5, fig.cap = "Average bike rental counts per weekday, per season and by year"}
@@ -265,7 +265,7 @@ ggplot(df, aes(x = weekday, y = cnt, color = factor(yr))) +
        scale_color_hue(labels = c("2011", "2012"))
 ```
 
-### Bike rental count and temperature
+### Bike Rental Count and Temperature
 
 
 ```{r, echo=FALSE, results='hide', include=FALSE}
