@@ -2,13 +2,11 @@
 title: "EDA"
 author: "Ricky Heinrich & Vimaljeet Singh"
 date: "2023-03-10"
-output: 
-  pdf_document: 
-    extra_dependencies: ["float"]
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE,fig.pos = "H", out.extra = "", fig.align = 'center')
+knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Workflow for current and next step in the project
@@ -71,16 +69,20 @@ The *weathersit* variable is categorical, where the conditions were classified i
 We see in figure 3 that a majority of cases are classified as '1', and decreasing counts as the weather gets less pleasant. We know the data doesn't contain an exhaustive list of all hours, but assuming the effect of missing hours is not great, this tells us that the weather is pleasant most of the time in DC. We see that there were only 3 hours where the weather was at its worse and there was at least one bike rental. 
 
 ```{r, echo=FALSE, fig.width=4, fig.height=3, fig.cap = "Count of rows per weather category"}
-plotlist[8][[1]]+ geom_text(aes(label = ..count..), stat = "count", vjust = 0)
+plotlist[8][[1]]+ geom_text(aes(label = after_stat(count)), stat = "count", vjust = 0)
 ```
 
 
 The rest of the weather related variables, *temp*, *atemp*, *hum* and *windspeed* have been scaled. We've transformed the data in new columns to get back original values to help make charts interpretable. In the *temp* plot of figure 4, we see what looks like a symmetric bimodal distribution. From the summary we see that the minimum is -7.06, and the maximum is +39 Celsius, and that the median and mean are similar values, at 15.50 and 15.36, corroborating the general symmetricalness. The feeling temperature,*atemp* shows more of a flattened peak, although there is one value that is recorded about doubly more often than any other. Similarly there's a few troughs, but generally it seems symmetric, although it has a slightly larger gap between its median and mean. The minimum and maximum here are -16 and +50 Celsius. We would have expected a more continuous distribution, so there might be something going on in regards to rounding or collection of data. Similarly, we would have expected more continuous data for the humidity records, as well as the windspeed. 
+\clearpage
+
 
 ```{r, echo=FALSE, fig.width=6, fig.height=4, fig.cap = "Count of rows per temperature, feeling temperature, humidity, and windspeed"}
 cowplot::plot_grid(plotlist = plotlist[16:19], nrow = 2)
 ```
-```{r}
+
+Data summaries:
+```{r, echo=FALSE}
 summary(df[18:21])
 ```
 
@@ -89,11 +91,14 @@ summary(df[18:21])
 Finally, *casual*, *registered*, and *cnt* are counts of bikes rented during each 'hour', corresponding to the count of casual users, registered users, and the sum of both. For the count of casual users during a given hour, we see in figure 5 what looks like a steep exponential decline. Intuitively, less users during a given hour happen a lot more often then a lot of users. The distribution of registered users sees less of an extreme drop, with a less steep decline from 50 counts on of individual hours observing a minimum of about 75 rides on. 
 
 From the summary, it is really interesting to see that the max amount of casual user rentals in a given hour is 367, whereas that of registered users is 886: more than double! The total amount of rides taken by casual users over the two years sums up to `r sum(df$casual)`, and that of registered users is `r sum(df$registered)`. Registered users are accountable for a majority of bike rentals. 
+\clearpage
 
 ```{r, echo=FALSE, fig.width=7, fig.height=2,fig.cap = "Count of rows per casual user values, registered user values, and total values, "}
 cowplot::plot_grid(plotlist = plotlist[13:15], ncol = 3)
 ```
-```{r}
+
+Data summaries:
+```{r, echo=FALSE}
 summary(df[15:17])
 ```
 
@@ -179,7 +184,7 @@ cowplot::plot_grid(plotlist = list(bikeperyrbox, scattercnt), ncol = 2)
 
 Let us explore this further:
 
-```{r}
+```{r, echo=FALSE}
 myday_2012 <- subset(day_sum, yr == 2012)
 mydata = myday_2012[myday_2012$cnt == min(myday_2012$cnt), c("cnt","dteday")]
 cbind(yearly_mean = mean(myday_2012$cnt), mydata)
@@ -214,6 +219,7 @@ ggplot(df, aes(x = mnth, y = cnt, color = factor(yr))) +
 
 
 ### Bike Rental Counts per Hour
+
 Next, in figure 9, we can see that both years follow a similar trend in average rental count per hour of day. There is a similar low number of bikes rented out in the hours of 2,3,4 and 5 in both years. The change is greatest in the daytime hours: 7am to 9pm. In an seasons, we observe peaks at 8am and 5pm, suggesting that people use the rental system as transportation to work. 
 
 ```{r, echo=FALSE, fig.width=7, fig.height=5, fig.cap = "Average bike rental counts per hour, per season and by year"}
@@ -235,6 +241,7 @@ ggplot(df, aes(x = hr, y = cnt, color = factor(yr))) +
   scale_x_continuous(breaks = seq(0, 23, by = 2))+
        scale_color_hue(labels = c("2011", "2012"))
 ```
+
 ### Bike Rental Counts per Weekday
 In figure 10, we interestingly don't observe a drop of rides during the weekends in every season. The trends are not similar for neither both years nor all seasons.
 
