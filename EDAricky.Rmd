@@ -278,7 +278,7 @@ dfday$rawwindspeed = dfday$windspeed*67 # converting windspeed to raw form
 
 In figure 11, We see that generally, the number of bike rentals per day increases with the temperature. From the colour scheme, we see that the points for the lower temperatures are generally lighter, showing that a greater proportion of the trips taken in that day are by registered users. There is never a day where casual users make up more than 50% of the trips taken, regardless of temperature.
 
-```{r, echo = FALSE,message=FALSE,warning=FALSE,fig.width=5, fig.height=3, fig.cap = "Daily count of bike rentals vs daily temperature, colored by % of registered users"}
+```{r, echo = FALSE,message=FALSE,warning=FALSE,fig.width=5, fig.height=3, fig.cap = "Daily count of bike rentals vs daily temperature feeling, colored by % of registered users"}
 
 dfday %>% 
   mutate(percent_registered = registered/cnt) %>%
