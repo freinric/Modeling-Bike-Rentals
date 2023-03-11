@@ -1,27 +1,29 @@
 ---
 title: "EDA"
-author: "Ricky Heinrich"
+author: "Ricky Heinrich & Vimaljeet Singh"
 date: "2023-03-10"
-output: pdf_document
+output: 
+  pdf_document: 
+    extra_dependencies: ["float"]
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE,fig.pos = "H", out.extra = "", fig.align = 'center')
 ```
 
-### Workflow for current and next step in the project
+## Workflow for current and next step in the project
 
 To determine which model would fit this data, we need to consider several factors such as the nature of the problem, the available data, and the type of output that we are trying to predict.
 
-First, we need to define the problem and the goal of the model. In this case, we are trying to **predict the number of bikes rented per hour (cnt)**, given the various features such as weather, time of day, and other factors. This is a regression problem, as we are trying to predict a discrete variable.
+First, we need to define the problem and the goal of the model. In this case, we are trying to **predict the number of bikes rented per hour (cnt)**, given the various features such as weather, time of day, and other factors. We also want to know which predictors influence the number of bikes rented the most. This is a regression problem.
 
 Second, we need to examine the available data and determine if there are any missing values, outliers, or other anomalies. If the data is incomplete, we may need to consider techniques such as imputation or data cleaning to address these issues.
 
 Third, we need to select appropriate features for the model. Some features, such as season or weather, may have a strong correlation with the number of bikes rented, while others may not be as important. Feature selection can be done using techniques such as correlation analysis or principal component analysis.
 
-Finally, we can select a model that is appropriate for the problem at hand. Some popular models for regression problems include linear regression, decision trees, random forests, and neural networks. We can use techniques such as cross-validation to evaluate different models and select the one that performs best on the data.
+Finally, we can select a model that is appropriate for the problem at hand. Some popular models for regression problems include linear regression, decision trees, random forests, and neural networks. We can use techniques such as cross-validation to evaluate different models and select the one that performs best on the data. From a multi linear regression, we may observe the p-value or use step-wise regression to determine which predictors are the most useful. In a random forest model, we may determine the importance of a predictor using the Gini Index.
 
-### Statistically Descriptive Analysis of the Dataset
+## Statistically Descriptive Analysis of the Dataset
 
 ```{r, echo=FALSE, results='hide', include=FALSE}
 library(tidyverse)
@@ -36,9 +38,9 @@ for (i in colnames(df)[-c(1,2)]){
   plotlist[[i]] <- ggplot(df, aes_string(x=i))+geom_bar()
 }
 ```
-the number of variables, variables types, summary statistics, graphs of data
 
-#### Date related variables
+### Date related variables
+
 The dataset contains 17 variables, where the first column is an index.
 Most of the data is numerical in nature, apart from the *dteday* column, which records the date in a date format. This date is separated further in year, month, and hour columns, which are factored into discrete numeric variables, similarly to the *weekday* variable, where Sunday is 0. The *year*, *holiday*, and *workinday* variables are boolean variables. For the *year*, a '0' represents 2011, and a '1' 2012. 
 
@@ -53,6 +55,8 @@ The distributions of counts for season, month, holiday, and workingday are not i
 ```{r, echo=FALSE, fig.width=6, fig.height=4,fig.cap = "Count of rows per Season, Month, Holiday, and Workingday"}
 cowplot::plot_grid(plotlist = plotlist[c(1,3,5,7)], ncol = 2)
 ```
+
+### Weather related variables
 
 The *weathersit* variable is categorical, where the conditions were classified into four. The data can be taken as ordinal, with '1' being the most 'pleasant' weather, and 4 the least. From the original data source description: 
 
@@ -80,6 +84,7 @@ cowplot::plot_grid(plotlist = plotlist[16:19], nrow = 2)
 summary(df[18:21])
 ```
 
+### Response data
 
 Finally, *casual*, *registered*, and *cnt* are counts of bikes rented during each 'hour', corresponding to the count of casual users, registered users, and the sum of both. For the count of casual users during a given hour, we see what looks like a steep exponential decline. Intuitively, less users during a given hour happen a lot more often then a lot of users. The distribution of registered users sees less of an extreme drop, with a less steep decline from 50 counts on of individual hours observing a minimum of about 75 rides on. We see that there is a lot more counts of casual users however (peaking >1500 vs >300), so on the same y-scale the distributions might look different. More investigation is needed in that regard. 
 
@@ -89,15 +94,31 @@ cowplot::plot_grid(plotlist = plotlist[13:15], ncol = 3)
 ```{r}
 summary(df[15:17])
 ```
-```{r}
-# trying to build a box plot with all of these on one plot ..
-#ggplot(df, aes())
+
+## ANOVA, correlation
+### Check if 'weathersit' and 'holiday' variables are important using ANOVA
+
+```{r, echo=FALSE}
+lm <- lm(cnt ~ weathersit + holiday, data = df)
+anova (lm)
 ```
 
+F values greater than 1, and pvalues less than 0.05 show that both these variables are significant in predicting count of bike rentals.
 
-## To see if Bike Rental Count is different for both years
+### Weather correlations
+```{r, echo=FALSE}
+cor.hum <- cor.test(x = df$cnt, y = df$hum)
+cor.temp <- cor.test(x = df$cnt, y = df$temp)
+cor.ws <- cor.test(x = df$cnt, y = df$windspeed)
+cbind(corr_hum=cor.hum[4], corr_temp=cor.temp[4], corr_ws=cor.ws[4])
+```
+It seems like the number of bike rentals is negatively correlated with the humidity, and positively correlated with the temperature. The correlation value with the wind is very close to 0, so it doesn't seem like there is a relation between windspeed and number of bike rentals.
 
-```{r echo=FALSE, fig.width=8, fig.height=3}
+## Exploratory Charts
+
+### Bike Rental Count per Year
+
+```{r echo=FALSE, fig.width=8, fig.height=3, fig.cap = "Left: Distribution of bike rental count per year, Right: 2012 daily bike rental count"}
 library(tidyverse)
 
 # aggregate by day, add year
@@ -106,7 +127,7 @@ day_sum$yr <- format(day_sum$dteday,"%Y")
 
 bikeperyrbox <- ggplot(day_sum, aes(x = factor(yr), y = cnt)) +
   geom_boxplot(fill = "red") +
-  labs(title = "Bike Rental Count by Year", x = "", y = "Bike Rentals") +
+  labs(title = "", x = "", y = "Bike Rentals") +
   theme(axis.title.x = element_text(size = 11), 
         axis.title.y = element_text(size = 11), 
         plot.title = element_text(size = 15, hjust = 0.5),
@@ -128,7 +149,7 @@ myday_2012$min_cnt <- ifelse(myday_2012$cnt == min_cnt, "Smallest Value", "Other
 # Plot cnt per day for the year 2012
 scattercnt <- ggplot(myday_2012, aes(x = dteday, y = cnt, color = min_cnt)) +
 geom_point(size = 2.5) +
-labs(title = "Bike Rental Counts per Day - 2012",
+labs(title = "",
    x = "",
    y = "Rental Count") +
 theme(axis.title.x = element_text(size = 15), 
@@ -162,28 +183,90 @@ We see that the number of bikes rented out on October 29, 2012 was underwhelming
 
 It was because of this natural calamity that the number of bike rental counts was super low. We have also successfully used this data set to find a natural calamity. 
 
-## Check if 'weathersit' and 'holiday' variables are important using ANOVA
 
-```{r}
-lm <- lm(cnt ~ weathersit + holiday, data = df)
-anova (lm)
+### Bike Rental Counts per Month
+
+[write about what we see: ]
+This next figure plots the count of bikes used for every month, split by year. Interestingly, 2011 sees a flat peak in June and a gradual decline into the winter months. The next year has a big jump from February to March, then climbs gradually to peak in September before seeing a steeper decline into the winter months.
+
+```{r, echo = FALSE, fig.width=4, fig.height=3, fig.cap = "Count of bike rentals per month"}
+ggplot(df, aes(x = mnth, y = cnt, color = factor(yr))) +
+  geom_point(size= 3,stat = 'summary', fun = 'sum' ) +
+  geom_line(stat = 'summary', fun = 'sum') +
+  labs(title = "",
+       x = "",
+       y = "Rental Count",
+       color = "Year") +
+  theme(axis.title.x = element_text(size = 11), 
+        axis.title.y = element_text(size = 11), 
+        plot.title = element_text(size = 15, hjust = 0.5),
+        legend.position = "top", legend.justification = "right",
+        legend.text = element_text(size = 7),
+        axis.text.x = element_text(size = 7),
+        axis.text.y = element_text(size = 7)) +
+  scale_x_continuous(breaks = seq(1, 12, by = 1), 
+                     labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))+
+       scale_color_hue(labels = c("2011", "2012"))
 ```
 
-F values greater than 1, and pvalues less than 0.05 show that both these variables are significant in predicting count of bike rentals.
+
+##  try to average daily: Daily averages per month instead of count
+
+### Bike Rental Counts per Hour
+Next, we can see that both years follow a similar trend in average rental count per hour of day. There is a similar low number of bikes rented out in the hours of 2,3,4 and 5 in both years. The change is greatest in the daytime hours: 7am to 9pm. In an seasons, we observe peaks at 8am and 5pm, suggesting that people use the rental system as transportation to work. 
+
+```{r, echo=FALSE, fig.width=7, fig.height=5, fig.cap = "Average bike rental counts per hour, per season"}
+ggplot(df, aes(x = hr, y = cnt, color = factor(yr))) +
+  geom_point(size= 2,stat = 'summary', fun = 'mean' ) +
+  geom_line(stat = 'summary', fun = 'mean') +
+  labs(title = "",
+       x = "Hour",
+       y = "Average Rental Count",
+       color = "Year") +
+  theme(axis.title.x = element_text(size = 11), 
+        axis.title.y = element_text(size = 11), 
+        plot.title = element_text(size = 15, hjust = 0.5),
+        legend.position = "top", legend.justification = "right",
+        legend.text = element_text(size = 7),
+        axis.text.x = element_text(size = 7),
+        axis.text.y = element_text(size = 7)) + 
+  facet_wrap(vars(season), labeller = as_labeller(c(`1` = 'Winter', `2` = 'Spring',  `3`= 'Summer', `4`= 'Fall')))+
+  scale_x_continuous(breaks = seq(0, 23, by = 2))+
+       scale_color_hue(labels = c("2011", "2012"))
+```
+### Bike Rental Counts per Weekday
+[per weekday] Interestingly, we don't observe a drop of rides during the weekends in every season. The trends are not similar for neither both years nor all seasons.
+
+```{r, echo=FALSE, fig.width=7, fig.height=5, fig.cap = "Average bike rental counts per weekday, per season"}
+ggplot(df, aes(x = weekday, y = cnt, color = factor(yr))) +
+  geom_point(size= 3,stat = 'summary', fun = 'mean' ) +
+  geom_line(stat = 'summary', fun = 'mean') +
+  labs(title = "",
+       x = "Hour",
+       y = "Average Rental Count",
+       color = "Year") +
+  theme(axis.title.x = element_text(size = 11), 
+        axis.title.y = element_text(size = 11), 
+        plot.title = element_text(size = 15, hjust = 0.5),
+        legend.position = "top", legend.justification = "right",
+        legend.text = element_text(size = 7),
+        axis.text.x = element_text(size = 7),
+        axis.text.y = element_text(size = 7)) + 
+  facet_wrap(vars(season), labeller = as_labeller(c(`1` = 'Winter', `2` = 'Spring',  `3`= 'Summer', `4`= 'Fall')))+
+  scale_x_continuous(breaks = seq(0, 6, by = 1), labels = c("Sun", "Mon", "Tues", "Wed","Thurs","Fri","Sat" ))+
+       scale_color_hue(labels = c("2011", "2012"))
+```
 
 # To do
-## fix the plots in report so flows smoothly after text, idk why they don't go where they are assigned
 
-## average bike rental plots per month, per hour, per weekday
-
-## what questions we will answer: how will try to answer more explicitely
-- what is most influencal variable: do that random forest gni index thing, which variable has most different MSE when removed ?
-- can we predict number of bikes given set of conditions : regression, could try non-parametric even tho you said linear regression is perfect fit lol
-- maybe we could try to cluster registered vs not registered. actually probably can't since its aggregated, this would be something from og og data
-
-## I think the normality plots about the weather data are not that interesting and I don't see the purpose of including them
+## casual vs registered during seasons, hour, weekday could be interesting
 
 ## I like bike rental counts vs temperature, still think the colour scale is not the most straighforward so maybe we can come up with something more 
+
+## talk about the variable summaries I printed earlier
+
+## check correlation matrix of all variables ? months probably correlated with temp for example
 
 
 
