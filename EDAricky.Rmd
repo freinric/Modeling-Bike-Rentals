@@ -44,13 +44,13 @@ for (i in colnames(df)[-c(1,2)]){
 The dataset contains 17 variables, where the first column is an index.
 Most of the data is numerical in nature, apart from the *dteday* column, which records the date in a date format. This date is separated further in year, month, and hour columns, which are factored into discrete numeric variables, similarly to the *weekday* variable, where Sunday is 0. The *year*, *holiday*, and *workinday* variables are boolean variables. For the *year*, a '0' represents 2011, and a '1' 2012. 
 
-We were expecting that the counts of observations for each year, weekday and hour are uniform across categories, as each should have the same number of hours. We suppose that there is a dip in 'observations' for the hours of 2,3,4,5 due to some days containing no rides during that hour. The count of hours with rides is slightly lower in 2011 than 2012, and we see a small concave curve with Sunday and Saturday on both ends and where there minimum count is on Tuesday.
+We are expecting that the counts of observations for each year, weekday and hour are uniform across categories, as each should have the same number of hours. As shown in figure 1, this was not quite the case. We suppose that there is a dip in 'observations' for the hours of 2,3,4,5 due to some days containing no rides during that hour. The count of hours with rides is slightly lower in 2011 than 2012, and we see a small concave curve with Sunday and Saturday on both ends and where there minimum count is on Tuesday.
 
 ```{r, echo=FALSE, fig.width=7, fig.height=2,fig.cap = "Count of rows per Year, Hour, and Weekday"}
 cowplot::plot_grid(plotlist = plotlist[c(2,4,6)], ncol = 3)
 ```
 
-The distributions of counts for season, month, holiday, and workingday are not interesting on their own, as each category is not meant to have the same number of hours (February has 72 less hours total than March since its got 3 days less). We cannot infer if the dips are due to hours containing no rides or just how the categories are set. 
+The distributions of counts for season, month, holiday, and workingday are not interesting on their own, as each category is not meant to have the same number of hours (February has 72 less hours total than March since its got 3 days less). We cannot infer if the dips shown in figure 2 are due to hours containing no rides or just how the categories are set. 
 
 ```{r, echo=FALSE, fig.width=6, fig.height=4,fig.cap = "Count of rows per Season, Month, Holiday, and Workingday"}
 cowplot::plot_grid(plotlist = plotlist[c(1,3,5,7)], ncol = 2)
@@ -68,16 +68,16 @@ The *weathersit* variable is categorical, where the conditions were classified i
 
 - 4: Heavy Rain + Ice Pallets + Thunderstorm + Mist, Snow + Fog.
 
-We see that a majority of cases are classified as '1', and decreasing counts as the weather gets less pleasant. We know the data doesn't contain an exhaustive list of all hours, but assuming the effect of missing hours is not great, this tells us that the weather is pleasant most of the time in DC. 
+We see in figure 3 that a majority of cases are classified as '1', and decreasing counts as the weather gets less pleasant. We know the data doesn't contain an exhaustive list of all hours, but assuming the effect of missing hours is not great, this tells us that the weather is pleasant most of the time in DC. We see that there were only 3 hours where the weather was at its worse and there was at least one bike rental. 
 
 ```{r, echo=FALSE, fig.width=4, fig.height=3, fig.cap = "Count of rows per weather category"}
-plotlist[8][[1]]
+plotlist[8][[1]]+ geom_text(aes(label = ..count..), stat = "count", vjust = 0)
 ```
 
 
-The rest of the weather related variables, *temp*, *atemp*, *hum* and *windspeed* have been scaled. We've transformed the data in new columns to get back original values to help make charts interpretable. In the 'temp' plot, we see what looks like a symmetric bimodal distribution. We know that the minimum is -8, and the maximum is +39 Celsius. 'atemp', which is the feeling temperature, shows more of a flattened peak, although there is one value that is recorded about doubly more often than any other. Similarly there's a few troughs, but generally it seems symmetric.  We would have expected a more continuous distribution, so there might be something going on in regards to rounding or collection of data. Similarly, we would have expected more continuous data for the humidity records, as well as the windspeed. 
+The rest of the weather related variables, *temp*, *atemp*, *hum* and *windspeed* have been scaled. We've transformed the data in new columns to get back original values to help make charts interpretable. In the *temp* plot of figure 4, we see what looks like a symmetric bimodal distribution. From the summary we see that the minimum is -7.06, and the maximum is +39 Celsius, and that the median and mean are similar values, at 15.50 and 15.36, corroborating the general symmetricalness. The feeling temperature,*atemp* shows more of a flattened peak, although there is one value that is recorded about doubly more often than any other. Similarly there's a few troughs, but generally it seems symmetric, although it has a slightly larger gap between its median and mean. The minimum and maximum here are -16 and +50 Celsius. We would have expected a more continuous distribution, so there might be something going on in regards to rounding or collection of data. Similarly, we would have expected more continuous data for the humidity records, as well as the windspeed. 
 
-```{r, echo=FALSE, fig.width=6, fig.height=4, fig.cap = "Count of rows per temp, atemp, hum, and windspeed"}
+```{r, echo=FALSE, fig.width=6, fig.height=4, fig.cap = "Count of rows per temperature, feeling temperature, humidity, and windspeed"}
 cowplot::plot_grid(plotlist = plotlist[16:19], nrow = 2)
 ```
 ```{r}
@@ -86,37 +86,49 @@ summary(df[18:21])
 
 ### Response data
 
-Finally, *casual*, *registered*, and *cnt* are counts of bikes rented during each 'hour', corresponding to the count of casual users, registered users, and the sum of both. For the count of casual users during a given hour, we see what looks like a steep exponential decline. Intuitively, less users during a given hour happen a lot more often then a lot of users. The distribution of registered users sees less of an extreme drop, with a less steep decline from 50 counts on of individual hours observing a minimum of about 75 rides on. We see that there is a lot more counts of casual users however (peaking >1500 vs >300), so on the same y-scale the distributions might look different. More investigation is needed in that regard. 
+Finally, *casual*, *registered*, and *cnt* are counts of bikes rented during each 'hour', corresponding to the count of casual users, registered users, and the sum of both. For the count of casual users during a given hour, we see in figure 5 what looks like a steep exponential decline. Intuitively, less users during a given hour happen a lot more often then a lot of users. The distribution of registered users sees less of an extreme drop, with a less steep decline from 50 counts on of individual hours observing a minimum of about 75 rides on. 
 
-```{r, echo=FALSE, fig.width=7, fig.height=2,fig.cap = "Count of rows per temp, atemp, hum, and windspeed"}
+From the summary, it is really interesting to see that the max amount of casual user rentals in a given hour is 367, whereas that of registered users is 886: more than double! The total amount of rides taken by casual users over the two years sums up to `r sum(df$casual)`, and that of registered users is `r sum(df$registered)`. Registered users are accountable for a majority of bike rentals. 
+
+```{r, echo=FALSE, fig.width=7, fig.height=2,fig.cap = "Count of rows per casual user values, registered user values, and total values, "}
 cowplot::plot_grid(plotlist = plotlist[13:15], ncol = 3)
 ```
 ```{r}
 summary(df[15:17])
 ```
 
-## ANOVA, correlation
-### Check if 'weathersit' and 'holiday' variables are important using ANOVA
+
+## Correlation among variables
+
+Figure 6 plots a correlation matrix, where we've removed predictors where the factor assigned to it is arbitrary, like *season* and *month*. Variables positively correlated with the total count of bikes rented in an hour are the year, hour of the day, and temperature both measured and felt. Humidity and *weathersit* are both negatively correlated. Variables with near zero correlation are *windspeed*, *holiday*, and *workingday*. It is interesting to see that *workingday* is weakly positively correlated with the count of registered user rentals, whereas more strongly negatively correlated with that of casual users. It is the only variable where the trends are not in the same direction between the two types of users.
+```{r, echo=FALSE, include=FALSE}
+library(corrplot)
+numeric_data <- select_if(df[-c(1,2,3,5,8,18,19,20,21)], is.numeric)
+cor_matrix <- cor(numeric_data)
+```
+
+```{r, echo=FALSE, fig.width=4, fig.height=3, fig.cap = "Correlation between select variables"}
+corrplot(cor_matrix, method = "color")
+```
+
+
+
+### Checking if 'weathersit' and 'holiday' variables are important using ANOVA
+
+The F values greater than 1 and the pvalues less than 0.05 show that both these variables are significant in predicting count of bike rentals, despite their weak correlation.
 
 ```{r, echo=FALSE}
 lm <- lm(cnt ~ weathersit + holiday, data = df)
 anova (lm)
 ```
 
-F values greater than 1, and pvalues less than 0.05 show that both these variables are significant in predicting count of bike rentals.
 
-### Weather correlations
-```{r, echo=FALSE}
-cor.hum <- cor.test(x = df$cnt, y = df$hum)
-cor.temp <- cor.test(x = df$cnt, y = df$temp)
-cor.ws <- cor.test(x = df$cnt, y = df$windspeed)
-cbind(corr_hum=cor.hum[4], corr_temp=cor.temp[4], corr_ws=cor.ws[4])
-```
-It seems like the number of bike rentals is negatively correlated with the humidity, and positively correlated with the temperature. The correlation value with the wind is very close to 0, so it doesn't seem like there is a relation between windspeed and number of bike rentals.
 
 ## Exploratory Charts
 
 ### Bike Rental Count per Year
+
+The number of bikes rented out has increased from 2011 in 2012, as seen in figure 7. We notice the outlier in 2012 which can be seen as a dot towards the bottom of the plot, and plotted in red in the scatterplot.
 
 ```{r echo=FALSE, fig.width=8, fig.height=3, fig.cap = "Left: Distribution of bike rental count per year, Right: 2012 daily bike rental count"}
 library(tidyverse)
@@ -126,7 +138,7 @@ day_sum <- aggregate(cnt~dteday, df, sum)
 day_sum$yr <- format(day_sum$dteday,"%Y")
 
 bikeperyrbox <- ggplot(day_sum, aes(x = factor(yr), y = cnt)) +
-  geom_boxplot(fill = "red") +
+  geom_boxplot() +
   labs(title = "", x = "", y = "Bike Rentals") +
   theme(axis.title.x = element_text(size = 11), 
         axis.title.y = element_text(size = 11), 
@@ -165,10 +177,6 @@ scale_color_manual(values = c("black", "red"), guide = "none")
 cowplot::plot_grid(plotlist = list(bikeperyrbox, scattercnt), ncol = 2)
 ```
 
-
-* The number of bikes rented out has increased from 2011 in 2012.
-* Also, we notice the outlier in 2012 which can be seen as a dot towards the bottom of the plot, plotted in red in the scatterplot.
-
 Let us explore this further:
 
 ```{r}
@@ -177,25 +185,19 @@ mydata = myday_2012[myday_2012$cnt == min(myday_2012$cnt), c("cnt","dteday")]
 cbind(yearly_mean = mean(myday_2012$cnt), mydata)
 ```
 
-We see that the number of bikes rented out on October 29, 2012 was underwhelmingly lower than the yearly average for 2012 making it an outlier. We investigated further to see why that is and found the following:
-
-\![](1.png)
-
-It was because of this natural calamity that the number of bike rental counts was super low. We have also successfully used this data set to find a natural calamity. 
-
+We see that the number of bikes rented out on October 29, 2012 was underwhelmingly lower than the yearly average for 2012 making it an outlier. We investigated further to see why that is and found that that is the day Hurricane Sandy landed on the east coast.
 
 ### Bike Rental Counts per Month
 
-[write about what we see: ]
-This next figure plots the count of bikes used for every month, split by year. Interestingly, 2011 sees a flat peak in June and a gradual decline into the winter months. The next year has a big jump from February to March, then climbs gradually to peak in September before seeing a steeper decline into the winter months.
+Figure 8 plots the count of bikes used for every month, split by year. Interestingly, 2011 sees a flat peak in June and a gradual decline into the winter months. The next year has a big jump from February to March, then climbs gradually to peak in September before seeing a steeper decline into the winter months.
 
-```{r, echo = FALSE, fig.width=4, fig.height=3, fig.cap = "Count of bike rentals per month"}
+```{r, echo = FALSE, fig.width=4, fig.height=3, fig.cap = "Average daily bike rentals per month by year"}
 ggplot(df, aes(x = mnth, y = cnt, color = factor(yr))) +
-  geom_point(size= 3,stat = 'summary', fun = 'sum' ) +
-  geom_line(stat = 'summary', fun = 'sum') +
+  geom_point(size= 3,stat = 'summary', fun = 'mean' ) +
+  geom_line(stat = 'summary', fun = 'mean') +
   labs(title = "",
        x = "",
-       y = "Rental Count",
+       y = "Daily Rental Count Average",
        color = "Year") +
   theme(axis.title.x = element_text(size = 11), 
         axis.title.y = element_text(size = 11), 
@@ -211,12 +213,10 @@ ggplot(df, aes(x = mnth, y = cnt, color = factor(yr))) +
 ```
 
 
-##  try to average daily: Daily averages per month instead of count
-
 ### Bike Rental Counts per Hour
-Next, we can see that both years follow a similar trend in average rental count per hour of day. There is a similar low number of bikes rented out in the hours of 2,3,4 and 5 in both years. The change is greatest in the daytime hours: 7am to 9pm. In an seasons, we observe peaks at 8am and 5pm, suggesting that people use the rental system as transportation to work. 
+Next, in figure 9, we can see that both years follow a similar trend in average rental count per hour of day. There is a similar low number of bikes rented out in the hours of 2,3,4 and 5 in both years. The change is greatest in the daytime hours: 7am to 9pm. In an seasons, we observe peaks at 8am and 5pm, suggesting that people use the rental system as transportation to work. 
 
-```{r, echo=FALSE, fig.width=7, fig.height=5, fig.cap = "Average bike rental counts per hour, per season"}
+```{r, echo=FALSE, fig.width=7, fig.height=5, fig.cap = "Average bike rental counts per hour, per season and by year"}
 ggplot(df, aes(x = hr, y = cnt, color = factor(yr))) +
   geom_point(size= 2,stat = 'summary', fun = 'mean' ) +
   geom_line(stat = 'summary', fun = 'mean') +
@@ -236,9 +236,9 @@ ggplot(df, aes(x = hr, y = cnt, color = factor(yr))) +
        scale_color_hue(labels = c("2011", "2012"))
 ```
 ### Bike Rental Counts per Weekday
-[per weekday] Interestingly, we don't observe a drop of rides during the weekends in every season. The trends are not similar for neither both years nor all seasons.
+In figure 10, we interestingly don't observe a drop of rides during the weekends in every season. The trends are not similar for neither both years nor all seasons.
 
-```{r, echo=FALSE, fig.width=7, fig.height=5, fig.cap = "Average bike rental counts per weekday, per season"}
+```{r, echo=FALSE, fig.width=7, fig.height=5, fig.cap = "Average bike rental counts per weekday, per season and by year"}
 ggplot(df, aes(x = weekday, y = cnt, color = factor(yr))) +
   geom_point(size= 3,stat = 'summary', fun = 'mean' ) +
   geom_line(stat = 'summary', fun = 'mean') +
@@ -258,15 +258,41 @@ ggplot(df, aes(x = weekday, y = cnt, color = factor(yr))) +
        scale_color_hue(labels = c("2011", "2012"))
 ```
 
-# To do
+### Bike rental count and temperature
 
-## casual vs registered during seasons, hour, weekday could be interesting
 
-## I like bike rental counts vs temperature, still think the colour scale is not the most straighforward so maybe we can come up with something more 
+```{r, echo=FALSE, results='hide', include=FALSE}
+dfday <- read_csv("Bike-Sharing-Dataset/day.csv")
+dfday$rawtemp = dfday$temp*47-8 # converting temp to raw form
+dfday$rawatemp = dfday$atemp*66-16 # converting atemp to raw
+dfday$rawhum = dfday$hum*100 # converting hum to raw form
+dfday$rawwindspeed = dfday$windspeed*67 # converting windspeed to raw form 
+```
 
-## talk about the variable summaries I printed earlier
+In figure 11, We see that generally, the number of bike rentals per day increases with the temperature. From the colour scheme, we see that the points for the lower temperatures are generally lighter, showing that a greater proportion of the trips taken in that day are by registered users. There is never a day where casual users make up more than 50% of the trips taken, regardless of temperature.
 
-## check correlation matrix of all variables ? months probably correlated with temp for example
+```{r, echo = FALSE,message=FALSE,warning=FALSE,fig.width=5, fig.height=3, fig.cap = "Daily count of bike rentals vs daily temperature, colored by % of registered users"}
+
+dfday %>% 
+  mutate(percent_registered = registered/cnt) %>%
+  ggplot(aes(x = rawatemp, y = cnt, color = percent_registered)) + 
+  geom_point(size= 2) +
+  labs(
+    x = "Temperature (in C)",
+    y = "Rental Count",
+    color = "Percentage of registered users") +
+  geom_smooth(method='lm', color="red") +
+  theme(axis.title.x = element_text(size = 11), 
+        axis.title.y = element_text(size = 11), 
+        plot.title = element_text(size = 15, hjust = 0.5),
+        legend.position = "top", legend.justification = "right",
+        legend.text = element_text(size = 7),
+        axis.text.x = element_text(size = 7),
+        axis.text.y = element_text(size = 7)) +
+  scale_x_continuous(limits = c(0, 40), breaks = seq(1, 38, by=3 ))
+```
+
+
 
 
 

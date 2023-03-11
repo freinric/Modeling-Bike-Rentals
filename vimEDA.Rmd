@@ -1,14 +1,4 @@
 ---
-title: "vimEDA"
-author: "Ricky Heinrich"
-date: "2023-03-10"
-output: pdf_document
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
----
 title: "Data583 EDA"
 author: "Vimaljeet Singh"
 date: '`r Sys.Date()`'
@@ -397,18 +387,51 @@ plot_row
 
 ```{r}
 library(randomForest)
-rf_model <- randomForest(cnt ~ . -instant, data = myday, ntree = 500, importance=TRUE)
+rf_model <- randomForest(cnt ~ . - instant - registered - casual - rawtemp - rawhum - rawwindspeed, 
+                         data = myday, ntree = 500, importance=TRUE)
 print(rf_model)
 varImpPlot(rf_model)
 ```
 
-* From the summary of the model fit, we can see that the entire data explains 98.5% of the variation on the response. This can be one model that can be used to fit the data.
+* From the summary of the model fit, we can see that the entire data explains 88.77% of the variation on the response. This can be one model that can be used to fit the data.
 * The variables are ranked in descending order of importance, with the most important variable at the top of the plot.
-* The importance of a variable is measured by its mean decrease in impurity (usually measured by Gini index) across all trees in the random forest model. The higher the decrease in impurity, the more important the variable is in making accurate predictions. 'registered', 'casual', 'dteday' seem to be very important variables.
 
+## Heat map of correlation among all variables
 
+```{r}
+library(corrplot)
+numeric_data <- select_if(myday, is.numeric)
+cor_matrix <- cor(numeric_data)
+corrplot(cor_matrix, method = "color")
+```
 
+## Type of Bike User vs Season
 
+```{r}
+library(tidyr)
+
+myhour <- read.csv("C:\\Users\\vjsng\\Data583\\583project\\Bike-Sharing-Dataset\\hour.csv")
+
+user_data <- myhour %>%
+group_by(season) %>%
+summarise(total_registered = sum(registered), total_casual = sum(casual))
+plot_data <- user_data %>%
+pivot_longer(cols = c("total_registered", "total_casual"), names_to = "user_type", values_to = "count")
+
+ggplot(plot_data, aes(x = season, y = count, fill = user_type)) +
+geom_bar(stat = "identity", position = "dodge") +
+scale_fill_manual(values = c("red", "blue")) +
+labs(x = "Season", y = "Total Number of Users", title = "Type of Users by Season") +
+theme(axis.title.x = element_text(size = 11), 
+      axis.title.y = element_text(size = 11), 
+      plot.title = element_text(size = 12, hjust = 0.5),
+      legend.position = "bottom", legend.justification = "right",
+      legend.text = element_text(size = 8),
+      axis.text.x = element_text(size = 7),
+      axis.text.y = element_text(size = 7))
+```
+
+1:springer, 2:summer, 3:fall, 4:winter
 
 
 
