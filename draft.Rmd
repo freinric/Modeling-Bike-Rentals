@@ -1,0 +1,265 @@
+---
+title: "Draft"
+author: "Ricky Heinrich & Vimaljeet Singh"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache=TRUE, warning=FALSE)
+# libraries
+library(np)
+library(lmtest)
+library(ggplot2)
+library(dplyr)
+library(corrplot)
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(MASS)
+```
+
+```{r echo=FALSE, cache=TRUE}
+# Reading the csv file
+dffull = read.csv("Bike-Sharing-Dataset//hour.csv", header = TRUE)
+
+# Converting temp to raw forms
+dffull$rawtemp = dffull$temp*47-8 # converting temp to raw form
+dffull$rawatemp = dffull$atemp*66-16 # converting atemp to raw
+dffull$rawhum = dffull$hum*100 # converting hum to raw form
+dffull$rawwindspeed = dffull$windspeed*67 # converting windspeed to raw form 
+
+# Removing variables that are not required
+dflessvar <- subset(dffull, select = -c(instant, dteday,temp, atemp, hum, windspeed, rawatemp, workingday))
+  
+# Converting columns to factors
+cols <- c("season", "mnth", "hr","holiday","weekday","weathersit", "yr")
+dflessvar[,cols] <- data.frame(lapply(dflessvar[cols], as.factor))
+
+# Setting levels of factors
+levels(dflessvar$season) <- c("winter", "spring", "summer", "fall")
+levels(dflessvar$mnth) <- c("Jan", "Feb", "Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+levels(dflessvar$holiday) <- c("Not Holiday", "Holiday")
+levels(dflessvar$weekday) <- c("Sun","Mon","Tues","Wed","Thurs","Fri","Sat")
+levels(dflessvar$weathersit) <- c("Clear","Misty","Light precip", "heavy precip")
+
+# head(dflessvar)
+```
+
+
+## Introduction
+The dataset we have chosen to analyze is Hadi Fanaee-T's [Bike Sharing Dataset](https://archive.ics.uci.edu/ml/datasets/Bike+Sharing+Dataset), from the Laboratory of Artificial Intelligence and Decision Support (LIAAD), University of Porto, accessed in the UCI Machine Learning Repository. This dataset combines the Trip History Data for the years of 2011 and 2012 of 'Capital Bikeshare', which is metro Washington DC's bikeshare service, with weather data and the holiday schedule. We are hypothesizing that we are able to predict the count of bikes rented in a given hour given the predictor variables (weather, calendar date and time, etc). We are also hypothesizing that results will be better if we model casual user bike rentals separately than registered users. Finally, we want to investigate which predictor variables are most important in making the predictions. 
+
+
+
+## Description of Dataset
+The data consists of an aggregated count of 'rides' by hour, over the span of the years 2011 and 2012. It contains 17379 rows and 17 columns. 
+
+| Variable Name | Description | Type |
+| :---- | :---- | :---- | :---|
+| instant | Record index | ordinal|
+|dteday | Date | datetime |
+|season | Season (winter, spring, summer, fall)| categorical|
+|yr | Year (2011, 2012) | ordinal|
+|mth | Month | categorical |
+| hr | Hour | categorical|
+| holiday | Whether day is a holiday or not | boolean |
+| weekday |Day of the week  | categorical |
+|workingday| If day is neither weekend nor holiday | boolean |
+| weathersit | Weather conditions | ordinal |
+| temp | Temperature in Celsius | numerical | 
+| atemp | Feeling temperature in Celsius | numerical |
+| hum | Humidity | numerical |
+| windspeed | Wind speed  | numerical |
+| casual | Count of bikes rented by casual users | numerical | 
+| registered | Count of bikes rented registered users | numerical | 
+| cnt | Count of total bikes rented | numerical |
+
+## Plan overview
+We will be conducting a linear regression, as it is the most simple model, as well as investigating a Poisson Regression, since this is count data, and a random forest model, to see if it improves the predictions. We'll investigate these models for the total count, as then separately for the casual counts and registered counts. We will investigate outliers in the data, and we will use variable selection methods to investigate which variables are most important. We are separating our data into an 60/40 training/testing set, and we will be using MSE as a measure of fit, as well as R^2. Finally, we will make our conclusions, and talk about limitations and possible future work. 
+
+In this report, we will explore different models for predicting the rental bike count like - Linear Regression, Poisson Regression, and Random Forests (RF). We chose these models due to their ability to handle the type of response variable we have and their relative simplicity, which allows for easy interpretation (except RF). We will first fit these models on the total rental count (cnt), and then separately on the 'casual' and 'registered' rental counts. To ensure accurate predictions, we will investigate outliers in the data and use variable selection methods to determine which predictors are most important. Our dataset will be split into a 60/40 training/testing set, and we will use mean squared error (MSE) and $R^2$ as measures of fit.
+
+Finally, we will present our conclusions and discuss the limitations of our models, as well as possible directions for future research.
+
+Due to high collinearity, we've decided to remove the `atemp` as well as the `workingday` variable from our models (check the figure below). We are considering our full model to include the following predictors: yr, mth, hr, holiday, weekday, weathersit, rawtemp, rawhum, and rawwindspeed, season. The response variables are cnt, casual, and registered.
+
+```{r echo=FALSE, cache=TRUE}
+numeric_data <- select_if(dffull, is.numeric)
+cor_matrix <- cor(numeric_data)
+corrplot(cor_matrix, method = "color")
+```
+
+
+```{r echo=FALSE, cache=TRUE}
+# Splitting data into test and training sets 
+set.seed(2023)
+sample.index <- sample(nrow(dflessvar),nrow(dflessvar)*0.60, replace = FALSE)
+df <- dflessvar[sample.index,]
+df.test <- dflessvar[-sample.index,]
+
+# head(df)
+# head(df.test)
+```
+
+## Linear Model
+
+In the Bike Sharing dataset, the response variable 'cnt' represents the number of hourly users of a bike. Unlike qualitative or quantitative variables, this response takes on non-negative integer values or counts.  
+
+```{r echo=FALSE, cache=TRUE}
+lmmod <- lm(cnt~., data = df[,-c(8,9)]) # removing 'casual' and 'registered' columns
+
+# stepAIC variable selection
+model_step <- stepAIC(lmmod, direction = "both", trace = FALSE)
+
+predlmmod <- predict(model_step, df.test[,-c(8,9)], type="response")
+mselmmod <- round(mean((df.test[,9] - predlmmod)^2),2) # MSE
+# mselmmod
+
+# Calculate the percentage of negative predicted values
+neg_pred <- sum(predlmmod < 0)
+perc_neg_pred <- (neg_pred / length(predlmmod)) * 100
+
+# Print the percentage of negative predicted values
+# cat("Percentage of negative predicted values:", round(perc_neg_pred, 2), "%\n")
+# summary(lmmod)
+
+# Extract R squared
+summary_lm <- summary(lmmod)
+RSq <- round(summary_lm$r.squared,4)
+Fstat <- round(summary_lm$fstatistic[1],2)
+```
+
+```{r  echo=FALSE, cache=TRUE}
+lmtable = data.frame(Statistic = c("R_Squared", "MSE", "F-Stat"),
+                     Value     = c(RSq, mselmmod, Fstat))
+kable(lmtable, align = "c")  %>% kable_styling(bootstrap_options = c("hover"), full_width = FALSE)
+```
+
+The table above shows the statistics of the fitted linear model. The linear model has a $R^2$ of 0.6875 which means the model is able to explain 68.75% variation in the count data based on the given independent variables. The F-statistic is very high which means one or more of the coefficients is significant. Most of the values that are in the model are significant. Overall, this seems to be a good fit for the model, but there seems to be an issue with the predicted values. 9.84% of the fitted values are negative which means that the linear model predicts a negative number of users during 9.84% of the hours in the data set (check 'Linear Model Fit' chart below too). The negative expected values of bikers in certain situations raises doubts about the reliability of predictions made from the regression model. It also casts doubt on the accuracy of the coefficient estimates and confidence intervals of the model. Moreover, it is plausible to assume that when the expected number of bikers is low, the variance associated with the number of users should also be small. For example, during a heavy December snow at 1 AM, we anticipate that only a few people will use a bike, and there will be less variation in the number of users during such conditions. In contrast, between 6am and 9am in summers, more number of riders are expected and hence the variance should be higher. The table below shows how these statistics vary. 
+
+```{r echo=FALSE, cache=TRUE}
+# Filter data
+temp1 <- dffull %>%
+  filter(hr >= 1 & hr <= 4 & mnth %in% c(12, 1, 2))
+
+# Calculate mean and variance of cnt variable for new data frame
+mean_cnt1 <- mean(temp1$cnt)
+var_cnt1 <- var(temp1$cnt)
+
+temp2 <- dffull %>%
+  filter(hr >= 6 & hr <= 9 & mnth %in% c(4, 5, 6))
+
+# Calculate mean and variance of cnt variable for new data frame
+mean_cnt2 <- mean(temp2$cnt)
+var_cnt2 <- var(temp2$cnt)
+
+
+# # Print the results (winter)
+# cat("Mean (1am - 4am in Dec, Jan, Feb):", mean_cnt, "\n")
+# cat("Variance (1am - 4am in Dec, Jan, Feb):", var_cnt, "\n")
+# 
+# # Print the results (summer)
+# cat("Mean of cnt for hours 6-9 in Apr, May, Jun:", mean_cnt, "\n")
+# cat("Variance of cnt for hours 6-9 in Apr, May, Jun:", var_cnt, "\n")
+
+mean_var_table = data.frame(Months = c("December, January, February", "April, May, June"),
+                  Time   = c("1am - 4am", "6am - 9am"),
+                  Riders_Mean = c(mean_cnt1, mean_cnt2),
+                  Riders_Variance = c(var_cnt1, var_cnt2))
+kable(mean_var_table, align = "c")  %>% kable_styling(bootstrap_options = c("hover"), full_width = FALSE)
+```
+
+Heteroscedasticity refers to a violation of the assumption in the linear model:
+
+$Y = \beta_{0} + \sum\limits_{j=1} ^ {p} X_{j}\beta_{j} + \epsilon$
+
+where the variance of the response variable (cnt) is not constant across the range of predictor variables. The most common form of heteroscedasticity in the response variable is that the variance of the response variable may change as the mean of the response variable changes. The estimate for the variance of the slope and variance will be inaccurate. Heteroscedasticity can be detected by examining the scatter plot of the data before performing the regression. We will plot a graph of mean vs variance for the 'cnt' values for both the years to inspect this.
+
+```{r echo=FALSE, cache=TRUE}
+# Finding mean and variance for 2011
+year_2011 <- subset(dffull, yr == 0)
+cnt_summary_2011 <- aggregate(cnt ~ mnth, data = year_2011, FUN = function(x) c(mean = mean(x), var = var(x)))
+cnt_summary_2011$mean <- cnt_summary_2011$cnt[,1]
+cnt_summary_2011$var <- cnt_summary_2011$cnt[,2]
+cnt_summary_2011$yr <- 2011
+cnt_summary_2011$yr <- factor(cnt_summary_2011$yr) 
+cnt_summary_2011 = cnt_summary_2011[c("mnth", "mean", "var", "yr")]
+
+# Finding mean and variance for 2011
+year_2012 <- subset(dffull, yr == 1)
+cnt_summary_2012 <- aggregate(cnt ~ mnth, data = year_2012, FUN = function(x) c(mean = mean(x), var = var(x)))
+cnt_summary_2012$mean <- cnt_summary_2012$cnt[,1]
+cnt_summary_2012$var <- cnt_summary_2012$cnt[,2]
+cnt_summary_2012$yr <- 2012
+cnt_summary_2012$yr <- factor(cnt_summary_2012$yr) 
+cnt_summary_2012 = cnt_summary_2012[c("mnth", "mean", "var", "yr")]
+
+# Merging the values for both years together to plot them
+summary = rbind(cnt_summary_2011, cnt_summary_2012)
+summary = summary[c("yr", "mnth", "mean", "var")]
+
+#Plot
+ggplot(summary, aes(x = mnth, y = var)) + 
+  geom_line(linewidth = 2, color = "red") + 
+  facet_wrap(~yr) +
+  labs(x = "Months", y = "Variance of cnt across months", title = "Variance of response variable") +
+  theme(axis.title.x = element_text(size = 11), 
+        axis.title.y = element_text(size = 11), 
+        plot.title = element_text(size = 15, hjust = 0.5),
+        axis.text.y = element_text(size = 7)) +
+  scale_x_continuous(breaks = 1:12, labels = 1:12)
+```
+
+The plot above clearly shows that the variance varies throughout the year and the assumption of a linear relationship between the predictor variable and the response variable is severely violated due to unequal variance of the response variable. In fact, the variance in 2012 is visibly more too on the whole. As a result, the assumption of homoscedasticity is not met, which raises concerns about the appropriateness of using a linear regression model to analyze the data.
+
+The following plot shows the observed values vs predicted values using linear model. Our concern here is visualzied when we see the red dots falling below the 0 on the x-axis.
+
+```{r echo=FALSE, cache=TRUE}
+plot(df.test$cnt, main = "Linear Model Fit", ylab = "Test Set Rental Count", pch = 20, cex=0.5) # observed values
+points(predict(lmmod, newdata = df.test[,-c(8,9)]), col = "red", pch = 20, cex=0.5) # predicted values
+legend("topleft", legend = c("Observed", "Predicted"), col = c("black", "red"), pch = 20)
+```
+
+We cannot have predicted count values that are negative (see the red dots below 0 in the graph below) as the number of bikes rented in an hour can never be negative. This is another reason we should not use linear model for this data. Furthermore, the response in this dataset 'cnt' is in the form of integers, while a linear model assumes that the error term is continuous. This means that the response variable in a linear model must be continuous as well. Therefore, the integer nature of 'cnt' response implies that a linear regression model may not be entirely suitable for this dataset.
+
+Transforming the response into `log` could help us eradicate some of the problems that we are facing with linear model. We could fit something like:
+
+$log(cnt) = \sum\limits_{j=1} ^ {p} X_{j}\beta_{j} + \epsilon$
+
+Transforming the response variable in the Bikeshare data can be helpful in addressing two main issues associated with fitting a linear regression model: the occurrence of negative predictions and the presence of heteroscedasticity in the original data. By transforming the response, we can avoid negative predicted values and reduce heteroscedasticity, resulting in a more accurate and reliable model. While transforming the response variable can address some issues in fitting a linear regression model, it is not entirely satisfactory. This is because the predictions and interpretations are made in terms of the logarithm of the response rather than the response itself, which can be challenging for interpretation. Moreover, this transformation cannot be applied to data sets where the response can take on a value of 0. Therefore, although using a transformation of the response can be a reasonable approach for some count-valued data sets, it may not always be the optimal solution.
+
+## Poisson Model
+
+The Poisson distribution is commonly employed to model counts due to several reasons, such as the fact that counts, like the Poisson distribution, are restricted to non-negative integer values. This makes it a suitable and natural choice for modeling count data.
+
+```{r echo=FALSE, cache=TRUE}
+poismod <- glm(cnt~., data = df[,-c(8,9)], family = poisson) # removing 'casual' and 'registered' variables
+predpois <- predict(poismod, df.test[,-c(8,9)], type="response") # predicting values
+msepois <- mean((df.test[,9] - predpois)^2) # MSE
+summary(poismod)
+```
+
+```{r echo=FALSE, cache=TRUE}
+plot(df.test$cnt, main = "GLM - Poisson", ylab = "Test Set Rental Count", pch = 20, cex=0.5) # observed values
+points(predpois, col = "red", pch = 20, cex=0.5) # predicted values
+legend("topleft", legend = c("Observed", "Predicted"), col = c("black", "red"), pch = 20)
+```
+
+When using a Poisson regression to model bike usage, we make an implicit assumption that the mean bike usage in an hour is equal to the variance of bike usage during that hour. This is because the Poisson distribution is typically used to model counts, and counts, like the Poisson distribution, take on non-negative integer values. In contrast, a linear regression model assumes that the variance of bike usage always takes on a constant value. Therefore, the Poisson regression model is better suited to handle the mean-variance relationship observed in the Bike sharing data compared to the linear regression model. In fact from the table below, we can see that the variance in 'cnt' appears to be much higher than the mean, a situation referred to as "overdispersion" which can seemingly be handled by quasi-poisson model. We checked the results from  a quasi-poisson model as well and the result is exactly the same as that of a Poisson model.
+
+```{r echo=FALSE, cache=TRUE}
+summary$Mean = round(summary$mean, 2)
+summary$Var = round(summary$var, 2)
+summary = summary[,-c(3,4)]
+colnames(summary)[1] = "Year"
+colnames(summary)[2] = "Month"
+kable(summary, align = "c") %>% kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+```
+
+
+
+
+
