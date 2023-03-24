@@ -1,0 +1,116 @@
+---
+title: "onlymodels"
+author: "Ricky Heinrich & Vimaljeet Singh"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# data
+```{r}
+library(tidyverse)
+library(ggplot2)
+
+dffull <- read.csv("Bike-Sharing-Dataset/hour.csv", stringsAsFactors = TRUE)
+dffull$rawtemp = dffull$temp*47-8 # converting temp to raw form
+dffull$rawatemp = dffull$atemp*66-16 # converting atemp to raw
+dffull$rawhum = dffull$hum*100 # converting hum to raw form
+dffull$rawwindspeed = dffull$windspeed*67 # converting windspeed to raw form 
+
+dflessvar <- subset(dffull, select = -c(instant, dteday,temp, atemp, hum, windspeed, rawatemp, workingday))
+  
+# converting some to factors
+# columns that should be factors
+cols <- c("season", "mnth", "hr","holiday","weekday","weathersit", "yr")
+dflessvar[,cols] <- data.frame(lapply(dflessvar[cols], as.factor))
+
+# setting levels of factors
+levels(dflessvar$season) <- c("winter", "spring", "summer", "fall")
+levels(dflessvar$mnth) <- c("Jan", "Feb", "Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+levels(dflessvar$holiday) <- c("Not Holiday", "Holiday")
+levels(dflessvar$weekday) <- c("Sun","Mon","Tues","Wed","Thurs","Fri","Sat")
+#levels(dflessvar$workingday) <- c("Not working day","Working day")
+levels(dflessvar$weathersit) <- c("Clear","Misty","Light precip", "heavy precip")
+levels(dflessvar$yr) <- c("2011","2012")
+
+# setting training/testing set
+set.seed(2023)
+sample.index <- sample(nrow(dflessvar),nrow(dflessvar)*0.60, replace = FALSE)
+df <- dflessvar[sample.index,]
+df.test <- dflessvar[-sample.index,]
+```
+
+
+# Linear Model
+
+## Cnt
+
+## Casual
+
+## Registered
+
+
+# Poisson Model
+
+## Cnt
+
+## Casual
+
+## Registered
+
+
+# Random Forest
+
+## Cnt
+```{r cache=TRUE}
+library(randomForest)
+set.seed(2023)
+rdforestmod <- randomForest(cnt~., data = df[,-c(8,9)], importance=TRUE)
+varImpPlot(rdforestmod, main = "Variable Importance Plot Cnt")
+rdforestmod
+
+predrf <- predict(rdforestmod, df.test[,-c(8,9,10)], type="response")
+(mserf <- mean((df.test[,10] - predrf)^2))
+```
+```{r}
+rdforestmod[["importance"]]
+```
+
+
+The percent increase in MSE shows that when either hr or yr are permuted, then the MSE increases by over 150%: the values of these variables are really important in prediction. Weekday and temperature values are also important, as MSE can increase by 75 or 100% as well when they get jumbled up. All variables except for the windspeed seem to sit at %IncMSE values of over 25%, suggesting that they all carry some importance in the model. [ I don't understand the plot vs the raw values, why raw temps has greater %IncMSE than yr but in plot yr comes up first?]
+
+"mean decrease of accuracy in predictions on the out of bag samples when a given variable is permuted"
+"measure of the total decrease in node impurity that results from splits over that variable, averaged over all trees "
+
+The IncNodePurity shows that the hr variable is by far the most important variable in regards to decreasing the node impurity. [What's the scale on these values idk ... ]
+
+## Casual
+```{r cache=TRUE}
+# rf cas
+set.seed(2023)
+rdforestmodcas <- randomForest(casual~., data = df[,-c(9,10)], importance=TRUE)
+varImpPlot(rdforestmodcas)
+rdforestmod
+predrfcas <- predict(rdforestmodcas, df.test[,-c(8,9,10)], type="response")
+(mserfcas <- mean((df.test[,8] - predrfcas)^2))
+
+```
+Modeling for just the Casual users, we see that the most important variable in terms of the mean decrease of accuracy in predictions on the out of bag samples when the variable is permuted is now weekday, at over 200%, followed by hr just below 150%, and then a year just under 100%. Still, there's a slew of variables that change over 50% in MSE when they are permutated. 
+
+In terms of IncNodePurity, the hr variable still ranks the highest, but the value is not as high as in the total cnt, and the weekday and rawtemp values follow closer behind than other models.
+
+## Registered
+```{r cache=TRUE}
+# rf reg
+set.seed(2023)
+rdforestmodreg <- randomForest(registered~., data = df[,-c(8,10)], importance=TRUE)
+varImpPlot(rdforestmodreg)
+rdforestmodreg
+predrfreg <- predict(rdforestmodreg, df.test[,-c(8,9,10)], type="response")
+(mserfreg <- mean((df.test[,9] - predrfreg)^2))
+```
+Modeling for just the registered users follows more closely to the total count, which makes sense given that registered users take up a greater proportion of total rides than casual users. We see that hr, year, and weekday sare again top variables when it comes to %IncMSE, and that hr is vastly more important when it comes to IncNodePurity. 
+
+
