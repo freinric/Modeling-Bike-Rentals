@@ -266,26 +266,17 @@ bw <- npregbw(casual~season+mnth+hr+holiday+weekday+weathersit+rawtemp+rawhum+ra
               bandwidth.compute=FALSE)
 modnp <- npreg(bws = bw)
 summary(modnp)
-prednpcas <- predict(modnp, df.test[,-c(7,8,9)])
-(msenpcas <- mean((df.test[,8] - prednpcas)^2))
-npsigtest(modnp, boot.num = 10)
 
-modnptest <- npreg(bws = bw,exdat =  df.test[,-c(7,8,9)])
-summary(modnptest)
+prednpcas <- predict(modnp, newdata = df.test[,-c(9,8,7)], type="response")
+(msenpcas <- mean((df.test[,7] - prednpcas)^2))
 
-library(npreg)
-predict.gsm
+
 ```
 
 ```{r}
-plot(df$casual, df$rawtemp)
-npmodnum <- npregbw(casual~rawtemp, data = df[,-c(9,8)], regtype="ll", bwmethod="cv.ls")
-modnpnum <- npreg(bws = npmodnum)
-summary(modnpnum)
 
-npmodnum3 <- npregbw(casual~rawtemp+rawhum+rawwindspeed, data = df[,-c(9,8)], regtype="ll", bwmethod="cv.ls")
-modnpnum3 <- npreg(bws = npmodnum3)
-summary(modnpnum3)
+
+
 
 
 ```
