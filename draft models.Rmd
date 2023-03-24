@@ -257,8 +257,47 @@ predrfreg <- predict(rdforestmodreg, df.test[,-c(7,8,9)], type="response")
 # adding to dataframe of MSEs
 predtable$MSEcas <- c(mselmmodcas, msepoiscas, msequasicas, mserfcas)
 predtable$MSEreg <- c(mselmmodreg, msepoisreg, msequasireg, mserfreg)
+``` 
 
- 
+``` {r}
+library(np)
+npmod <- npregbw(casual~season+mnth+hr+holiday+weekday+weathersit+rawtemp+rawhum+rawwindspeed, data = df[,-c(9,8)], regtype="ll", bwmethod="cv.ls")
+bw <- npregbw(casual~season+mnth+hr+holiday+weekday+weathersit+rawtemp+rawhum+rawwindspeed, data = df[,-c(9,8)], bws=c(0.5,0.5,0.5,0.5,0.5,0.5,2,6,4),
+              bandwidth.compute=FALSE)
+modnp <- npreg(bws = bw)
+summary(modnp)
+prednpcas <- predict(modnp, df.test[,-c(7,8,9)])
+(msenpcas <- mean((df.test[,8] - prednpcas)^2))
+npsigtest(modnp, boot.num = 10)
+
+modnptest <- npreg(bws = bw,exdat =  df.test[,-c(7,8,9)])
+summary(modnptest)
+
+library(npreg)
+predict.gsm
 ```
+
+```{r}
+plot(df$casual, df$rawtemp)
+npmodnum <- npregbw(casual~rawtemp, data = df[,-c(9,8)], regtype="ll", bwmethod="cv.ls")
+modnpnum <- npreg(bws = npmodnum)
+summary(modnpnum)
+
+npmodnum3 <- npregbw(casual~rawtemp+rawhum+rawwindspeed, data = df[,-c(9,8)], regtype="ll", bwmethod="cv.ls")
+modnpnum3 <- npreg(bws = npmodnum3)
+summary(modnpnum3)
+
+
+```
+
+
+# Results
+As we've seen in the EDA (idk if we can mention like, this, b/c stakeholder will probs not refer to EDA? like if we were to publish this 'paper', so might just need to give more context). We see from the estimation vs actual plot, 2012 has overal higher values. The variance due to the second year having wildly different values suggests that this data is not the best to train as we want it; we would need more years to analyze growing trends, to better forecast and model future trends. This is reflected in our high errors ? 
+
+Is it dumb to remove the year then? hard to forecast future growth with just 2 years, but maybe could assume the growth in 2013 is the same from 2011 to 2013 ..
+Or just mention it in limitations, like have a big section talking about limitations and how forecasting would have been better but we didn't actually do that in this program and I forgot about my forecasting class from undergrad until rn, when it is too late, plus limitations in dataset kinda prevent from doing so.
+
+## Conclusions
+
 
 
