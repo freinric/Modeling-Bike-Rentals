@@ -38,42 +38,48 @@ Which predictor is most important?
 ```{r, echo=FALSE, results='hide', include=FALSE}
 library(tidyverse)
 library(ggplot2)
-df <- read_csv("Bike-Sharing-Dataset/hour.csv")
-df$rawtemp = df$temp*47-8 # converting temp to raw form
-df$rawatemp = df$atemp*66-16 # converting atemp to raw
-df$rawhum = df$hum*100 # converting hum to raw form
-df$rawwindspeed = df$windspeed*67 # converting windspeed to raw form 
 
-colnames(df)
+dffull <- read.csv("Bike-Sharing-Dataset/hour.csv", stringsAsFactors = TRUE)
+dffull$rawtemp = dffull$temp*47-8 # converting temp to raw form
+dffull$rawatemp = dffull$atemp*66-16 # converting atemp to raw
+dffull$rawhum = dffull$hum*100 # converting hum to raw form
+dffull$rawwindspeed = dffull$windspeed*67 # converting windspeed to raw form 
+
 ```
+
 # Removing variables I don't care about
 ```{r}
-min_df <- subset(df, select = -c(instant, dteday, yr,temp, atemp, hum, windspeed))
-
+dflessvar <- subset(dffull, select = -c(instant, dteday, yr,temp, atemp, hum, windspeed, rawatemp, workingday))
+  
 # converting some to factors
 # columns that should be factors
-cols <- c("season", "mnth", "hr","holiday","weekday","workingday","weathersit")
-min_df[,cols] <- data.frame(apply(min_df[cols], 2, as.factor))
+cols <- c("season", "mnth", "hr","holiday","weekday","weathersit")
+dflessvar[,cols] <- data.frame(lapply(dflessvar[cols], as.factor))
+
 
 # setting levels of factors
-levels(min_df$season) <- c("winter", "spring", "summer", "fall")
-levels(min_df$mnth) <- c("Jan", "Feb", "Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
-levels(min_df$holiday) <- c("Not Holiday", "Holiday")
-levels(min_df$weekday) <- c("Sun","Mon","Tues","Wed","Thurs","Fri","Sat")
-levels(min_df$workingday) <- c("Not working day", "Working day")
-levels(min_df$weathersit) <- c("Clear","Misty","Light precip", "heavy precip")
+levels(dflessvar$season) <- c("winter", "spring", "summer", "fall")
+levels(dflessvar$mnth) <- c("Jan", "Feb", "Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+levels(dflessvar$holiday) <- c("Not Holiday", "Holiday")
+levels(dflessvar$weekday) <- c("Sun","Mon","Tues","Wed","Thurs","Fri","Sat")
+#levels(dflessvar$workingday) <- c("Not working day","Working day")
+levels(dflessvar$weathersit) <- c("Clear","Misty","Light precip", "heavy precip")
+
+set.seed(2023)
+sample.index <- sample(nrow(dflessvar),nrow(dflessvar)*0.60, replace = FALSE)
+df <- dflessvar[sample.index,]
+df.test <- dflessvar[-sample.index,]
 ```
 
 Need to make sure stuff is factoring properly .... like that when it factors the levels mean the same thing I think they mean, so we don't fuck up analysis later. I forget the code to double check the matching of the levels and factors 
 
-## Need to split train/test like you did oops
 
 ## linear regression ?
 ```{r}
 # response variable full count, removing casual and registered
 # could do another model with just casual then just registered to see if the variables affect them differently
-lmmod <- lm(cnt~.-casual -registered, data = min_df)
-summary(lmmod)
+lmmod <- lm(cnt~., data = df[,-c(7,8)])
+#summary(lmmod)
 ```
 How to we interpret this intercept? Like if all the betas are 0, we get than intercept, does that mean all the binary variables that have 0s in them are the only ones that are 'inplace' ?
 
@@ -85,13 +91,126 @@ Show predicted values come out negative (Vimal shows this)
 
 Should we do cross validation? 
 
-## random forest decision tree?
-
-What are the assumptions of random forest again ?
 ```{r}
+plot(lmmod)
+```
+we see that some values fit under 0, so despite a decent R^2 this is not a realistic model. To deal with this, we want to consider a Poisson model, where the response variable is a count that can never be negative.
+
+```{r}
+predlmmod <- predict(lmmod,df.test[,-c(7,8,9)], type="response")
+
+(mselmmod <- mean((df.test[,9] - predlmmod)^2))
 
 ```
 
+```{r}
+poismod <- glm(cnt~., data = df[,-c(7,8)], family = poisson)
+#summary(poismod)
+```
+null deviance: if only interecept. 
+
+```{r}
+plot(poismod)
+```
+```{r}
+predpois <- predict(poismod, df.test[,-c(7,8,9)], type="response")
+ 
+(msepois <- mean((df.test[,9] - predpois)^2))
+```
+
+
+
+```{r}
+quasipoismod <- glm(cnt~., data =  df[,-c(7,8)], family = quasipoisson)
+summary(quasipoismod)
+plot(quasipoismod)
+```
+```{r}
+predquasi <- predict(quasipoismod, df.test[,-c(7,8,9)], type="response")
+ 
+(msequasi <- mean((df.test[,9] - predquasi)^2))
+
+
+
+```
+
+
+
+## random forest decision tree?
+
+What are the assumptions of random forest again ?
+- 
+```{r}
+library(randomForest)
+set.seed(2023)
+rdforestmod <- randomForest(cnt~., data = df[,-c(7,8)], importance=TRUE)
+varImpPlot(rdforestmod)
+rdforestmod
+
+
+predrf <- predict(rdforestmod, df.test[,-c(7,8,9)], type="response")
+ 
+(mserf <- mean((df.test[,9] - predrf)^2))
+ 
+
+sum(predrf < 0)
+```
+## predictions
+```{r}
+predtable <- data.frame(Model = c("LM", "GLM (Poisson)","GLM (quasiPoisson)"," Random forest"),
+                 MSE = c(mselmmod, msepois, msequasi, mserf ))
+predtable
+
+```
+
+
+# test if lm is bad
+```{r}
+library(lmtest)
+reset(lmmod)
+```
+
+
 ## see if we can do one of those spline things or non parametrics since they are john's fav
+```{r  cache=TRUE}
+library(np)
+#npmod <- npregbw(cnt~season+mnth+hr+holiday+weekday+weathersit+rawtemp+rawhum+rawwindspeed, data = df[,-c(7,8)], regtype="ll", bwmethod="cv.ls")
+#modnp <- npreg(bws = npmod)
+
+```
+
+
+- 
+
+
+- hypothesis: model improves when separating prediction for casual vs registered users
+- hypothesis: we are able to predict the count of bikes rented in a given hour given the predictor variables (weather, calendar date and time, etc)
+
+
+# question list:
+from leverage plot, should we investigate the big points, how to interpret them
+
+
+
+## separating casual and regsitered to see differences in models
+
+```{r}
+# linear model casual
+lmmodcas <- lm(casual~., data = df[,-c(8,9)])
+summary(lmmodcas)
+plot(lmmodcas)
+predlmmodcas <- predict(lmmodcas,df.test[,-c(7,8,9)], type="response")
+mselmmodcas <- mean((df.test[,9] - predlmmodcas)^2)
+
+colnames(df)
+
+# linear model registered
+lmmodreg <- lm(registered~., data = df[,-c(7,9)])
+summary(lmmodreg)
+plot(lmmodreg)
+predlmmodreg <- predict(lmmodreg,df.test[,-c(7,8,9)], type="response")
+mselmmodreg <- mean((df.test[,9] - predlmmodreg)^2)
+
+```
 
 
