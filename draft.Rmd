@@ -84,7 +84,7 @@ df.test <- dflessvar[-sample.index,]
 
 
 ## Random Forest model
-Because we are interested in prediction, we are ready to lose some interpretability in our model in exchange for better predictive power. Using random forest over a simple decision tree decreases the variance as well as the bias, usually resulting in closer predictions.  We know that the values for 2012 are greater overall that 2011, suggesting that the program increases in popularity, and so for future years forecasting we will have to take that into account.
+Because we are interested in prediction, we are ready to lose some interpretability in our model in exchange for better predictive power. Using random forest over a simple decision tree decreases the variance as well as the bias, usually resulting in closer predictions.
 
 ### Total Count
 As seen in Figure ##, the percent increase in MSE shows that when either hr or yr are permuted, then the MSE increases by over 150%: the values of these variables are really important in prediction. Weekday and temperature values are also important, as MSE can increase by 75 or 100% as well when they get jumbled up. All variables except for the windspeed seem to sit at %IncMSE values of over 25%, suggesting that they all carry some importance in the model. [ I don't understand the plot vs the raw values, why raw temps has greater %IncMSE than yr but in plot yr comes up first?]
@@ -139,6 +139,8 @@ The final draw: comparing the model performances on the test set. We've calcualt
 
 [predtable]
 MSE performance for all models, maybe have test and train?
+
+We see that 'yr' is an important variable all around: it makes sense, as Capital Bikeshare began operations in 2010, and so usage growth would grow a lot in the first few years. To predict count of bike rentals per hour in future years, we would have to take into account the growth in the business and popularity. Therefore, a limitation in our data is that is only covers two years and so it is hard to forecast usage in future years. 
 
 ## Limitations
 
