@@ -105,7 +105,7 @@ predlmmod <- predict(lmmod,df.test[,-c(7,8,9)], type="response")
 
 ```{r}
 poismod <- glm(cnt~., data = df[,-c(7,8)], family = poisson)
-#summary(poismod)
+summary(poismod)
 ```
 null deviance: if only interecept. 
 
@@ -200,7 +200,7 @@ lmmodcas <- lm(casual~., data = df[,-c(8,9)])
 summary(lmmodcas)
 plot(lmmodcas)
 predlmmodcas <- predict(lmmodcas,df.test[,-c(7,8,9)], type="response")
-mselmmodcas <- mean((df.test[,9] - predlmmodcas)^2)
+mselmmodcas <- mean((df.test[,7] - predlmmodcas)^2)
 
 colnames(df)
 
@@ -209,8 +209,56 @@ lmmodreg <- lm(registered~., data = df[,-c(7,9)])
 summary(lmmodreg)
 plot(lmmodreg)
 predlmmodreg <- predict(lmmodreg,df.test[,-c(7,8,9)], type="response")
-mselmmodreg <- mean((df.test[,9] - predlmmodreg)^2)
+mselmmodreg <- mean((df.test[,8] - predlmmodreg)^2)
 
+
+# poisson casual
+poismodcas <- glm(casual~., data = df[,-c(9,8)], family = poisson)
+summary(poismodcas)
+predpoiscas <- predict(poismodcas, df.test[,-c(7,8,9)], type="response")
+(msepoiscas <- mean((df.test[,7] - predpoiscas)^2))
+
+# poisson registered
+poismodreg <- glm(registered~., data = df[,-c(7,9)], family = poisson)
+summary(poismodreg)
+predpoisreg <- predict(poismodreg, df.test[,-c(7,8,9)], type="response")
+(msepoisreg <- mean((df.test[,8] - predpoisreg)^2))
+
+# quasi cas
+quasipoismodcas <- glm(casual~., data =  df[,-c(8,9)], family = quasipoisson)
+summary(quasipoismodcas)
+plot(quasipoismodcas)
+predquasicas <- predict(quasipoismodcas, df.test[,-c(7,8,9)], type="response")
+(msequasicas <- mean((df.test[,7] - predquasicas)^2))
+
+# quasi reg
+quasipoismodreg <- glm(registered~., data = df[,-c(7,9)], family = quasipoisson)
+summary(quasipoismodreg)
+predquasireg <- predict(quasipoismodreg, df.test[,-c(7,8,9)], type="response")
+(msequasireg <- mean((df.test[,8] - predquasireg)^2))
+
+# rf cas
+set.seed(2023)
+rdforestmodcas <- randomForest(casual~., data = df[,-c(9,8)], importance=TRUE)
+varImpPlot(rdforestmodcas)
+rdforestmod
+predrfcas <- predict(rdforestmodcas, df.test[,-c(7,8,9)], type="response")
+(mserfcas <- mean((df.test[,7] - predrfcas)^2))
+
+# rf reg
+set.seed(2023)
+rdforestmodreg <- randomForest(registered~., data = df[,-c(7,9)], importance=TRUE)
+varImpPlot(rdforestmodreg)
+rdforestmodreg
+predrfreg <- predict(rdforestmodreg, df.test[,-c(7,8,9)], type="response")
+(mserfreg <- mean((df.test[,8] - predrfreg)^2))
+
+
+# adding to dataframe of MSEs
+predtable$MSEcas <- c(mselmmodcas, msepoiscas, msequasicas, mserfcas)
+predtable$MSEreg <- c(mselmmodreg, msepoisreg, msequasireg, mserfreg)
+
+ 
 ```
 
 
